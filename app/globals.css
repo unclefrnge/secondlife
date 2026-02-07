@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: #0b0b0c;
+  --color-surface: #111113;
+  --color-text: #f3f1ea;
+  --color-muted: #a6a6a6;
+  --color-border: rgba(243, 241, 234, 0.16);
+  --color-accent: #d8d6cf;
+  --color-danger: #b04d4d;
+
+  --radius: 10px;
+
+  --duration-ui: 220ms;
+  --ease-calm: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', 'Segoe UI',
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+body {
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.55;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: rgba(242, 242, 240, 0.2);
+}
+
+@keyframes window-pop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.animate-window-pop {
+  animation: window-pop 180ms var(--ease-calm);
+}
+
+@keyframes chamber-logo-trace {
+  from {
+    stroke-dashoffset: 210;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes chamber-logo-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.chamber-logo-path {
+  stroke-dasharray: 210;
+  stroke-dashoffset: 210;
+  animation: chamber-logo-trace 1000ms ease-out forwards;
+}
+
+.chamber-logo-delay {
+  animation-delay: 120ms;
+}
+
+.chamber-logo-delay-2 {
+  animation-delay: 240ms;
+}
+
+.chamber-logo-dot {
+  animation: chamber-logo-pulse 1200ms ease-in-out infinite;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
