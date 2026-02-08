@@ -10,14 +10,14 @@ export default function AppendixPage() {
 
   if (!isHydrated) {
     return (
-      <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-14 sm:px-10">
+      <main className="mx-auto min-h-dvh w-full max-w-3xl px-6 py-14 sm:px-10">
         <div className="h-10 w-48 animate-pulse rounded bg-zinc-900" />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-14 sm:px-10 sm:py-20">
+    <main className="mx-auto min-h-dvh w-full max-w-3xl px-6 py-14 sm:px-10 sm:py-20">
       {state.appendixUnlocked ? (
         <section className="space-y-7">
           <header className="space-y-2">

@@ -63,7 +63,7 @@ export default function DownloadPage() {
   };
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-14 sm:px-10 sm:py-20">
+    <main className="mx-auto min-h-dvh w-full max-w-3xl px-6 py-14 sm:px-10 sm:py-20">
       {status === 'success' ? (
       <section className="space-y-8">
           <header className="space-y-2">

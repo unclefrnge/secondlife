@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { accessLinks, downloadConfig, stealLinks } from '@/lib/config';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { WindowControls } from '@/components/ui/window-controls';
 import { useIsMobile } from '@/lib/hooks/use-is-mobile';
 import { readState, writeState } from '@/lib/storage';
@@ -15,8 +17,16 @@ import { cn } from '@/lib/utils';
 type WindowId = 'listen' | 'buy' | 'steal' | 'help' | 'lore' | 'trace' | 'ghost' | 'key' | 'quest';
 type MenuLabel = 'Finder' | 'File' | 'Edit' | 'View' | 'Window' | 'Help';
 type IconId = 'listen' | 'help' | 'lore' | 'trace' | 'key' | 'buy' | 'steal' | 'ghost' | 'quest';
-type SystemStage = 'booting' | 'ready';
+type SystemStage = 'booting' | 'login' | 'desktop';
 type BootPhase = 'post' | 'manager' | 'loader' | 'desktop';
+type AccountId = 'Knight' | 'Ghost' | 'Bat' | 'Parker' | 'Samuel';
+type AccountStatus = 'available' | 'locked' | 'banned';
+
+interface LoginAccount {
+  id: AccountId;
+  status: AccountStatus;
+  summary: string;
+}
 
 interface Point {
   x: number;
@@ -67,6 +77,8 @@ const MENU_ITEMS: MenuLabel[] = ['Finder', 'File', 'Edit', 'View', 'Window', 'He
 const ICON_IDS: IconId[] = ['listen', 'help', 'lore', 'trace', 'key', 'buy', 'steal', 'ghost', 'quest'];
 const WINDOW_IDS: WindowId[] = ['listen', 'buy', 'steal', 'help', 'lore', 'trace', 'ghost', 'key', 'quest'];
 const CHAMBER_BOOT_KEY = 'chamber-os-v0.2-booted';
+const CHAMBER_OS_USER_KEY = 'chamber_os_user';
+const CHAMBER_OS_LOGGED_IN_KEY = 'chamber_os_logged_in';
 const BOOT_TOTAL_MS = 7000;
 const BOOT_PHASE_TIMING = {
   postEnd: 1484,
@@ -138,6 +150,27 @@ const KEY_TEXT = `chamber.key
 
 Key accepted.
 Appendix path is now visible.`;
+
+const LOGIN_ACCOUNTS: LoginAccount[] = [
+  { id: 'Knight', status: 'available', summary: 'visitor access' },
+  { id: 'Ghost', status: 'locked', summary: 'password required' },
+  { id: 'Bat', status: 'locked', summary: 'password required' },
+  { id: 'Parker', status: 'locked', summary: 'password required' },
+  { id: 'Samuel', status: 'banned', summary: 'account disabled' }
+];
+
+const LOCKED_ERROR_POOL = [
+  'Password incorrect.',
+  'Access denied. (credential mismatch)',
+  'Local key required.',
+  'This profile is not available on this machine.',
+  'Handshake failed. (signal dropped)',
+  'That password is real somewhere else.',
+  'Error 17B: queue token missing.',
+  'This login is ceremonial only.',
+  'Chamber policy: visitors may not assume identities.',
+  'Password accepted. User rejected.'
+] as const;
 
 const DESKTOP_ITEMS: Record<IconId, DesktopItem> = {
   listen: {
@@ -283,6 +316,16 @@ function clampWindowPoint(id: WindowId, point: Point, rect: DesktopRect): Point 
   };
 }
 
+function statusDotClass(status: AccountStatus) {
+  if (status === 'available') {
+    return 'bg-[#28c840]';
+  }
+  if (status === 'banned') {
+    return 'bg-[#ff5f57]';
+  }
+  return 'bg-[#febc2e]';
+}
+
 function FolderGlyph() {
   return (
     <span aria-hidden="true" className="relative block h-[44px] w-[64px]">
@@ -378,12 +421,12 @@ function FinderWindow({
 
   if (mobile) {
     return (
-      <div className="fixed inset-0 z-40 flex items-start bg-black/65 px-3 pt-14">
+      <div className="fixed inset-0 z-40 bg-black/65 px-2 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-[calc(env(safe-area-inset-top)+3.5rem)] sm:px-3 sm:pt-[calc(env(safe-area-inset-top)+3.75rem)]">
         <section
           role="dialog"
           aria-modal="true"
           aria-label={spec.title}
-          className="w-full overflow-hidden rounded-[12px] border border-border bg-[#0d0d0f] animate-window-pop"
+          className="flex h-full w-full flex-col overflow-hidden rounded-[12px] border border-border bg-[#0d0d0f] animate-window-pop"
         >
           <header className="border-b border-border bg-zinc-900/55 px-3 py-2">
             <div className="flex items-center justify-between gap-3">
@@ -403,7 +446,7 @@ function FinderWindow({
               </button>
             </div>
           </header>
-          <div className="max-h-[74svh] overflow-y-auto bg-[#0b0b0d]/95 p-3">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-[#0b0b0d]/95 p-3">{children}</div>
         </section>
       </div>
     );
@@ -490,9 +533,11 @@ export default function BootPage() {
   const [keyUnlocked, setKeyUnlocked] = useState(false);
   const [systemStage, setSystemStage] = useState<SystemStage>('booting');
   const [bootElapsedMs, setBootElapsedMs] = useState(0);
-  const [bootOverlayVisible, setBootOverlayVisible] = useState(false);
-  const [bootOverlayOpacity, setBootOverlayOpacity] = useState(1);
-  const [desktopVisible, setDesktopVisible] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<AccountId>('Knight');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [lockedErrorIndex, setLockedErrorIndex] = useState(-1);
+  const [loginFooterNote, setLoginFooterNote] = useState('Resident access panel.');
 
   const loreUnlocked = finderClicks >= 3;
 
@@ -513,6 +558,11 @@ export default function BootPage() {
     return ids;
   }, [ghostUnlocked, keyUnlocked, loreUnlocked, traceUnlocked]);
 
+  const selectedAccount = useMemo(
+    () => LOGIN_ACCOUNTS.find((account) => account.id === selectedAccountId) ?? LOGIN_ACCOUNTS[0],
+    [selectedAccountId]
+  );
+
   const clearSystemTimers = useCallback(() => {
     if (systemFrameRef.current !== null) {
       window.cancelAnimationFrame(systemFrameRef.current);
@@ -524,34 +574,16 @@ export default function BootPage() {
     clearSystemTimers();
     setSystemStage('booting');
     setBootElapsedMs(0);
-    setBootOverlayVisible(false);
-    setBootOverlayOpacity(1);
-    setDesktopVisible(false);
+    setLoginError('');
+    setLoginPassword('');
+    setLoginFooterNote('Resident access panel.');
+    setSelectedAccountId('Knight');
 
     const startedAt = performance.now();
-    let desktopPhaseEntered = false;
 
     const tick = (now: number) => {
       const elapsed = Math.min(now - startedAt, BOOT_TOTAL_MS);
       setBootElapsedMs(elapsed);
-
-      if (elapsed >= BOOT_PHASE_TIMING.loaderEnd) {
-        if (!desktopPhaseEntered) {
-          desktopPhaseEntered = true;
-          setSystemStage('ready');
-          setBootOverlayVisible(true);
-        }
-
-        const desktopProgress = clamp(
-          (elapsed - BOOT_PHASE_TIMING.loaderEnd) /
-            (BOOT_PHASE_TIMING.desktopEnd - BOOT_PHASE_TIMING.loaderEnd),
-          0,
-          1
-        );
-
-        setDesktopVisible(desktopProgress > 0.01);
-        setBootOverlayOpacity(1 - desktopProgress);
-      }
 
       if (elapsed < BOOT_TOTAL_MS) {
         systemFrameRef.current = window.requestAnimationFrame(tick);
@@ -559,10 +591,7 @@ export default function BootPage() {
       }
 
       window.sessionStorage.setItem(CHAMBER_BOOT_KEY, '1');
-      setSystemStage('ready');
-      setDesktopVisible(true);
-      setBootOverlayVisible(false);
-      setBootOverlayOpacity(0);
+      setSystemStage('login');
     };
 
     systemFrameRef.current = window.requestAnimationFrame(tick);
@@ -573,15 +602,24 @@ export default function BootPage() {
       return;
     }
 
+    const loggedIn = window.localStorage.getItem(CHAMBER_OS_LOGGED_IN_KEY) === 'true';
+    const user = window.localStorage.getItem(CHAMBER_OS_USER_KEY);
+
+    if (loggedIn && user === 'Knight') {
+      setBootElapsedMs(BOOT_TOTAL_MS);
+      setSystemStage('desktop');
+      setSelectedAccountId('Knight');
+      return;
+    }
+
     if (window.sessionStorage.getItem(CHAMBER_BOOT_KEY) === '1') {
       setBootElapsedMs(BOOT_TOTAL_MS);
-      setSystemStage('ready');
-      setDesktopVisible(true);
-      setBootOverlayVisible(false);
-      setBootOverlayOpacity(0);
-    } else {
-      runBootAnimation();
+      setSystemStage('login');
+      setSelectedAccountId('Knight');
+      return;
     }
+
+    runBootAnimation();
 
     return () => {
       clearSystemTimers();
@@ -935,6 +973,78 @@ export default function BootPage() {
     openWindow('key');
   };
 
+  const selectAccount = (accountId: AccountId) => {
+    setSelectedAccountId(accountId);
+    setLoginPassword('');
+    setLoginFooterNote('Resident access panel.');
+    if (accountId === 'Samuel') {
+      setLoginError('ACCOUNT DISABLED (BANNED)');
+      return;
+    }
+    setLoginError('');
+  };
+
+  const triggerLockedFailure = useCallback(() => {
+    const next = (lockedErrorIndex + 1) % LOCKED_ERROR_POOL.length;
+    setLockedErrorIndex(next);
+    setLoginError(LOCKED_ERROR_POOL[next]);
+    setLoginPassword('');
+  }, [lockedErrorIndex]);
+
+  const loginAsKnight = () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(CHAMBER_OS_USER_KEY, 'Knight');
+      window.localStorage.setItem(CHAMBER_OS_LOGGED_IN_KEY, 'true');
+      window.sessionStorage.setItem(CHAMBER_BOOT_KEY, '1');
+    }
+    setLoginError('');
+    setLoginPassword('');
+    setSystemLine('Knight session active');
+    setSystemStage('desktop');
+  };
+
+  const logoutToLogin = () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(CHAMBER_OS_USER_KEY);
+      window.localStorage.removeItem(CHAMBER_OS_LOGGED_IN_KEY);
+    }
+
+    setSystemStage('login');
+    setSelectedAccountId('Knight');
+    setLoginError('');
+    setLoginPassword('');
+    setLoginFooterNote('Session closed. Visitor access only.');
+    setOpenWindows([]);
+    setSelectedIcons([]);
+    setSelectionStart(null);
+    setSelectionCurrent(null);
+    setExpandedWindows([]);
+    setDragWindow(null);
+    setDragIcon(null);
+    clearSystemTimers();
+  };
+
+  const restartSystem = () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(CHAMBER_OS_USER_KEY);
+      window.localStorage.removeItem(CHAMBER_OS_LOGGED_IN_KEY);
+      window.sessionStorage.removeItem(CHAMBER_BOOT_KEY);
+    }
+    setOpenWindows([]);
+    setExpandedWindows([]);
+    setDragWindow(null);
+    setDragIcon(null);
+    runBootAnimation();
+  };
+
+  const shutDownSystem = () => {
+    setSystemStage('login');
+    setSelectedAccountId('Knight');
+    setLoginPassword('');
+    setLoginError('');
+    setLoginFooterNote('System idle. Click Knight to continue.');
+  };
+
   const menuHint = useMemo(() => {
     if (keyUnlocked) {
       return 'chamber.key active';
@@ -968,11 +1078,12 @@ export default function BootPage() {
     1
   );
   const loaderVisibleCount = Math.max(1, Math.ceil(loaderProgress * LOADER_LINES.length));
+  const otherAccounts = LOGIN_ACCOUNTS.filter((account) => account.id !== selectedAccount.id);
 
-  if (systemStage !== 'ready') {
+  if (systemStage === 'booting') {
     return (
-      <main className="min-h-screen bg-black text-[#ecebe5]">
-        <section className="mx-auto flex min-h-screen w-full max-w-4xl flex-col justify-between px-4 py-7 sm:px-7 sm:py-8">
+      <main className="min-h-dvh bg-black text-[#ecebe5]">
+        <section className="mx-auto flex min-h-dvh w-full max-w-4xl flex-col justify-between px-4 py-7 sm:px-7 sm:py-8">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-5 font-mono text-[13px] leading-relaxed sm:text-sm">
               {bootPhase === 'post' ? (
@@ -1037,15 +1148,114 @@ export default function BootPage() {
     );
   }
 
+  if (systemStage === 'login') {
+    return (
+      <main className="relative min-h-dvh overflow-hidden bg-[#060608] text-[#ecebe5]">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-45"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 18% 16%, rgba(255,255,255,0.08), transparent 40%), radial-gradient(circle at 78% 76%, rgba(255,255,255,0.07), transparent 43%)'
+          }}
+        />
+
+        <section className="relative mx-auto flex min-h-dvh w-full max-w-[1080px] items-center justify-center px-4 py-8 sm:px-6">
+          <div className="w-full max-w-[540px] rounded-[14px] border border-white/10 bg-[#0f1012]/90 p-4 backdrop-blur-[2px] sm:p-6">
+            <header className="text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-[#141518] font-mono text-xl text-[#f2f1ea]">
+                {selectedAccount.id.slice(0, 2).toUpperCase()}
+              </div>
+              <h1 className="mt-3 text-2xl font-medium text-[#f2f1ea]">{selectedAccount.id}</h1>
+              <p className="mt-1 text-sm text-[#a4a29a]">{selectedAccount.summary}</p>
+            </header>
+
+            <div className="mt-5 rounded-[10px] border border-white/10 bg-black/25 p-4">
+              {selectedAccount.id === 'Knight' ? (
+                <div className="space-y-3">
+                  <Button type="button" onClick={loginAsKnight} className="w-full font-mono">
+                    Log In
+                  </Button>
+                  <p className="text-center text-xs uppercase tracking-[0.08em] text-[#9d9b93]">visitor access</p>
+                </div>
+              ) : null}
+
+              {selectedAccount.status === 'locked' ? (
+                <form
+                  className="space-y-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    triggerLockedFailure();
+                  }}
+                >
+                  <Input
+                    type="password"
+                    value={loginPassword}
+                    onChange={(event) => setLoginPassword(event.target.value)}
+                    placeholder="password"
+                    aria-label={`${selectedAccount.id} password`}
+                    className="font-mono text-sm"
+                  />
+                  <Button type="submit" variant="secondary" className="w-full font-mono">
+                    Unlock
+                  </Button>
+                  <p className="min-h-5 text-xs text-[#d9d8d1]">{loginError || 'Locked profile.'}</p>
+                </form>
+              ) : null}
+
+              {selectedAccount.status === 'banned' ? (
+                <p className="rounded-md border border-[#ff5f57]/45 bg-[#ff5f57]/8 px-3 py-2 text-center font-mono text-xs uppercase tracking-[0.08em] text-[#f5d6d4]">
+                  ACCOUNT DISABLED (BANNED)
+                </p>
+              ) : null}
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {otherAccounts.map((account) => (
+                <button
+                  key={account.id}
+                  type="button"
+                  onClick={() => selectAccount(account.id)}
+                  className="flex min-h-11 w-full items-center justify-between rounded-md border border-white/10 bg-black/20 px-3 text-left transition-colors duration-ui ease-calm hover:border-white/30 hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <span className="text-sm text-[#eeede7]">{account.id}</span>
+                  <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.1em] text-[#a4a29a]">
+                    <span className={cn('h-2 w-2 rounded-full', statusDotClass(account.status))} />
+                    {account.status}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <p className="mt-4 text-center font-mono text-[11px] text-[#8b8982]">{loginFooterNote}</p>
+          </div>
+        </section>
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
+          <div className="pointer-events-auto mx-auto flex w-full max-w-[1080px] justify-end gap-2 text-[11px]">
+            <button
+              type="button"
+              onClick={restartSystem}
+              className="inline-flex min-h-9 items-center rounded-md border border-white/10 px-3 text-[#b0aea7] transition-colors duration-ui ease-calm hover:border-white/30 hover:text-[#f1f0ea] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              Restart
+            </button>
+            <button
+              type="button"
+              onClick={shutDownSystem}
+              className="inline-flex min-h-9 items-center rounded-md border border-white/10 px-3 text-[#8e8b84] transition-colors duration-ui ease-calm hover:border-white/30 hover:text-[#dedcd4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              Shut down
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main
-      className={cn(
-        'relative min-h-screen bg-bg text-text transition-opacity duration-700 ease-calm',
-        desktopVisible ? 'opacity-100' : 'opacity-0',
-        bootOverlayVisible ? 'pointer-events-none' : ''
-      )}
-    >
-      <header className="fixed inset-x-0 top-0 z-20 h-11 border-b border-border bg-[#09090b]/95 backdrop-blur-[1px]">
+    <main className="relative min-h-dvh bg-bg text-text">
+      <header className="fixed inset-x-0 top-0 z-20 h-[calc(2.75rem+env(safe-area-inset-top))] border-b border-border bg-[#09090b]/95 pt-[env(safe-area-inset-top)] backdrop-blur-[1px]">
         <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between gap-3 px-2 sm:px-4">
           <div className="flex min-w-0 items-center gap-3 sm:gap-6">
             <span className="hidden items-center gap-[7px] sm:flex" aria-hidden="true">
@@ -1070,11 +1280,19 @@ export default function BootPage() {
             </nav>
           </div>
 
-          <p className="hidden truncate text-xs text-muted lg:block">{menuHint}</p>
+          <div className="flex items-center gap-2">
+            <p className="hidden truncate text-xs text-muted lg:block">{menuHint}</p>
+            <span className="hidden rounded-md border border-border bg-black/20 px-2 py-1 text-[11px] text-muted sm:inline-flex">
+              Knight
+            </span>
+            <Button type="button" size="sm" variant="ghost" onClick={logoutToLogin} className="font-mono text-xs">
+              Log Out
+            </Button>
+          </div>
         </div>
       </header>
 
-      <section className="relative min-h-screen overflow-hidden px-4 pb-16 pt-14 sm:px-7 sm:pt-16">
+      <section className="relative min-h-dvh overflow-hidden px-4 pb-[calc(4rem+env(safe-area-inset-bottom))] pt-[calc(3.5rem+env(safe-area-inset-top))] sm:px-7 sm:pt-[calc(4rem+env(safe-area-inset-top))]">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-40"
@@ -1087,8 +1305,8 @@ export default function BootPage() {
         <div
           ref={desktopRef}
           className={cn(
-            'relative mx-auto h-[calc(100svh-118px)] max-w-[1600px]',
-            isMobile ? 'overflow-y-auto pb-4' : ''
+            'relative mx-auto h-[calc(100dvh-118px)] max-w-[1600px]',
+            isMobile ? 'overflow-y-auto overscroll-y-contain pb-4' : ''
           )}
           onPointerDown={handleDesktopPointerDown}
           onPointerMove={handleDesktopPointerMove}
@@ -1256,7 +1474,8 @@ export default function BootPage() {
                   <iframe
                     src="/chamber-text-quest?embedded=1&ui=91"
                     title="Chamber Text Quest"
-                    className="h-[66svh] min-h-[430px] w-full bg-black sm:min-h-[500px]"
+                    loading="lazy"
+                    className="h-[62dvh] min-h-[320px] w-full bg-black sm:min-h-[500px]"
                   />
                 </div>
               ) : null}
@@ -1524,7 +1743,7 @@ trace.mount ....... available`}
         </div>
       </section>
 
-      <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-[#09090b]/92 px-4 py-2 backdrop-blur-[1px]">
+      <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-[#09090b]/92 px-4 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur-[1px]">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3">
           <p className="text-sm text-muted">{menuHint}</p>
           <Link
@@ -1536,18 +1755,6 @@ trace.mount ....... available`}
         </div>
       </footer>
 
-      {bootOverlayVisible ? (
-        <div
-          className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black transition-opacity duration-150 ease-linear"
-          style={{ opacity: bootOverlayOpacity }}
-          aria-hidden="true"
-        >
-          <div className="space-y-4 text-center">
-            <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-[#cdccc6]">DESKTOP_APPEARS</p>
-            <span className="inline-flex h-8 w-8 animate-spin rounded-full border-2 border-text/35 border-t-text" />
-          </div>
-        </div>
-      ) : null}
     </main>
   );
 }

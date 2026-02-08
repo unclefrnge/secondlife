@@ -1232,8 +1232,8 @@ export default function ChamberTextQuestPage() {
 
   if (!hydrated) {
     return (
-      <main className={cn('bg-black text-text', embedded ? 'h-dvh overflow-hidden' : 'min-h-screen')}>
-        <div className={cn('mx-auto flex items-center justify-center px-4 font-mono', embedded ? 'h-full' : 'min-h-screen max-w-3xl')}>
+      <main className={cn('bg-black text-text', embedded ? 'h-[100dvh] overflow-hidden' : 'min-h-dvh')}>
+        <div className={cn('mx-auto flex items-center justify-center px-4 font-mono', embedded ? 'h-full' : 'min-h-dvh max-w-3xl')}>
           <p className="text-sm text-muted">Loading Chamber Text Quest...</p>
         </div>
       </main>
@@ -1244,13 +1244,13 @@ export default function ChamberTextQuestPage() {
     <main
       className={cn(
         'relative bg-[#050706] text-[#b8f3bf]',
-        embedded ? 'h-dvh overflow-hidden px-0 py-0' : 'min-h-screen overflow-hidden px-3 py-5 sm:px-6'
+        embedded ? 'h-[100dvh] overflow-hidden px-0 py-0' : 'min-h-dvh overflow-hidden px-3 py-5 sm:px-6'
       )}
     >
       <div
         className={cn(
           'relative mx-auto flex min-h-full max-w-5xl flex-col',
-          embedded ? 'h-full max-w-none grid grid-rows-[auto_minmax(0,1fr)] p-2 sm:p-3' : 'min-h-[calc(100vh-2rem)]'
+          embedded ? 'h-full max-w-none grid grid-rows-[auto_minmax(0,1fr)] p-2 sm:p-3' : 'min-h-[calc(100dvh-2rem)]'
         )}
       >
         <header className="sticky top-0 z-20 rounded-[4px] border border-[#2b3f2d] bg-[#0a120d] px-3 py-3">
@@ -1331,7 +1331,7 @@ export default function ChamberTextQuestPage() {
               <p className="shrink-0 text-[#67a96f]">{isTypingSceneText ? 'writing...' : `choices: ${visibleChoices.length}`}</p>
             </div>
 
-            <div className="relative min-h-0 overflow-y-auto rounded-[4px] border border-[#2b3f2d] bg-[#050706] px-3 py-3 pr-2 font-mono text-[13px] leading-6">
+            <div className="relative min-h-0 overflow-y-auto overscroll-y-contain rounded-[4px] border border-[#2b3f2d] bg-[#050706] px-3 py-3 pr-2 font-mono text-[13px] leading-6">
               <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 opacity-15"
@@ -1417,7 +1417,7 @@ export default function ChamberTextQuestPage() {
               </SheetHeader>
 
               <section className="mt-4 rounded-[4px] border border-[#2b3f2d] bg-black/25 p-3 font-mono text-sm text-[#8ed596]">
-                <div className="max-h-[72vh] space-y-1 overflow-y-auto pr-1">
+                <div className="max-h-[72dvh] space-y-1 overflow-y-auto pr-1">
                   {state.log.length ? (
                     state.log.map((entry, index) => <p key={`${index}-${entry}`}>{entry}</p>)
                   ) : (
