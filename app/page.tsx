@@ -1,21 +1,22 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { accessLinks, downloadConfig, stealLinks } from '@/lib/config';
-import { ChamberBootOverlay } from '@/components/ui/chamber-boot-overlay';
 import { WindowControls } from '@/components/ui/window-controls';
 import { useIsMobile } from '@/lib/hooks/use-is-mobile';
 import { readState, writeState } from '@/lib/storage';
 import type { ListeningMode } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-type WindowId = 'listen' | 'buy' | 'steal' | 'help' | 'lore' | 'trace' | 'ghost' | 'key';
+type WindowId = 'listen' | 'buy' | 'steal' | 'help' | 'lore' | 'trace' | 'ghost' | 'key' | 'quest';
 type MenuLabel = 'Finder' | 'File' | 'Edit' | 'View' | 'Window' | 'Help';
-type IconId = 'listen' | 'help' | 'lore' | 'trace' | 'key' | 'buy' | 'steal' | 'ghost';
-type SystemStage = 'boot' | 'login' | 'restart-progress' | 'restart-spinner' | 'ready';
+type IconId = 'listen' | 'help' | 'lore' | 'trace' | 'key' | 'buy' | 'steal' | 'ghost' | 'quest';
+type SystemStage = 'booting' | 'ready';
+type BootPhase = 'post' | 'manager' | 'loader' | 'desktop';
 
 interface Point {
   x: number;
@@ -51,7 +52,7 @@ interface DesktopItem {
   id: IconId;
   label: string;
   hint: string;
-  type: 'folder' | 'file';
+  type: 'folder' | 'file' | 'app';
   window: WindowId;
 }
 
@@ -63,9 +64,38 @@ interface WindowSpec {
 }
 
 const MENU_ITEMS: MenuLabel[] = ['Finder', 'File', 'Edit', 'View', 'Window', 'Help'];
-const ICON_IDS: IconId[] = ['listen', 'help', 'lore', 'trace', 'key', 'buy', 'steal', 'ghost'];
-const WINDOW_IDS: WindowId[] = ['listen', 'buy', 'steal', 'help', 'lore', 'trace', 'ghost', 'key'];
+const ICON_IDS: IconId[] = ['listen', 'help', 'lore', 'trace', 'key', 'buy', 'steal', 'ghost', 'quest'];
+const WINDOW_IDS: WindowId[] = ['listen', 'buy', 'steal', 'help', 'lore', 'trace', 'ghost', 'key', 'quest'];
 const CHAMBER_BOOT_KEY = 'chamber-os-v0.2-booted';
+const BOOT_TOTAL_MS = 7000;
+const BOOT_PHASE_TIMING = {
+  postEnd: 1484,
+  managerEnd: 2275,
+  loaderEnd: 5950,
+  desktopEnd: BOOT_TOTAL_MS
+} as const;
+
+const POST_LINES = [
+  'CHAMBER BIOS v0.2.13',
+  'CPU: EMU CORE OK',
+  'MEM: 16384MB OK',
+  'VIDEO: VGA OK',
+  'USB: 2 devices detected',
+  'SATA0: CHMBR_DRIVE_01 OK',
+  'NET: LINK UP',
+  '[POST] salt integrity........ OK',
+  '[POST] kombucha viscosity..... OK',
+  'Press F2 for Setup, F12 Boot Menu'
+] as const;
+
+const LOADER_LINES = [
+  'initialising kernel...',
+  'mounting /archive...',
+  'loading drivers...',
+  'applying edicts...',
+  'starting services...',
+  'starting shell...'
+] as const;
 
 const SYSTEM_LINES = [
   'six chapters, recovered and released',
@@ -165,6 +195,13 @@ const DESKTOP_ITEMS: Record<IconId, DesktopItem> = {
     hint: 'Unlocked by menu sequence.',
     type: 'folder',
     window: 'ghost'
+  },
+  quest: {
+    id: 'quest',
+    label: 'Chamber Text Quest',
+    hint: 'Retro parser game shortcut.',
+    type: 'app',
+    window: 'quest'
   }
 };
 
@@ -176,7 +213,8 @@ const WINDOW_SPECS: Record<WindowId, WindowSpec> = {
   lore: { title: 'archive_note.log', subtitle: 'Recovered artefact', width: 760, height: 390 },
   trace: { title: 'trace.route', subtitle: 'Diagnostic route', width: 760, height: 430 },
   ghost: { title: 'GHOST CACHE', subtitle: 'Hidden folder', width: 760, height: 430 },
-  key: { title: 'chamber.key', subtitle: 'Verification file', width: 720, height: 380 }
+  key: { title: 'chamber.key', subtitle: 'Verification file', width: 720, height: 380 },
+  quest: { title: 'CHAMBER TEXT QUEST', subtitle: 'Resident parser game', width: 1020, height: 680 }
 };
 
 const ICON_WIDTH = 210;
@@ -210,7 +248,8 @@ function buildInitialIconPositions(width: number) {
     key: { x: ICON_EDGE, y: ICON_EDGE + ICON_GRID_Y * 4 },
     buy: { x: rightX, y: ICON_EDGE },
     steal: { x: rightX, y: ICON_EDGE + ICON_GRID_Y },
-    ghost: { x: rightX, y: ICON_EDGE + ICON_GRID_Y * 2 }
+    ghost: { x: rightX, y: ICON_EDGE + ICON_GRID_Y * 2 },
+    quest: { x: rightX, y: ICON_EDGE + ICON_GRID_Y * 3 }
   };
 }
 
@@ -263,6 +302,24 @@ function FileGlyph() {
       <span className="absolute left-[7px] top-[29px] h-[1px] w-[14px] bg-border" />
     </span>
   );
+}
+
+function AppGlyph() {
+  return (
+    <span aria-hidden="true" className="relative block h-[48px] w-[48px] overflow-hidden rounded-[8px] border border-border">
+      <Image src="/chamber-text-quest-app-icon.png" alt="" width={48} height={48} className="h-full w-full object-cover" />
+    </span>
+  );
+}
+
+function DesktopGlyph({ item }: { item: DesktopItem }) {
+  if (item.type === 'folder') {
+    return <FolderGlyph />;
+  }
+  if (item.type === 'app') {
+    return <AppGlyph />;
+  }
+  return <FileGlyph />;
 }
 
 interface ListRowProps {
@@ -401,7 +458,6 @@ export default function BootPage() {
   const desktopRef = useRef<HTMLDivElement>(null);
   const zCounterRef = useRef(24);
   const systemFrameRef = useRef<number | null>(null);
-  const systemTimeoutRef = useRef<number | null>(null);
 
   const [desktopRect, setDesktopRect] = useState<DesktopRect>({ width: 1200, height: 760 });
   const [iconPositions, setIconPositions] = useState<Record<IconId, Point>>(() => buildInitialIconPositions(1200));
@@ -419,7 +475,8 @@ export default function BootPage() {
     lore: { x: 182, y: 86, z: 14 },
     trace: { x: 208, y: 112, z: 15 },
     ghost: { x: 236, y: 94, z: 16 },
-    key: { x: 262, y: 120, z: 17 }
+    key: { x: 262, y: 120, z: 17 },
+    quest: { x: 288, y: 146, z: 18 }
   });
   const [dragWindow, setDragWindow] = useState<DragWindowState | null>(null);
   const [expandedWindows, setExpandedWindows] = useState<WindowId[]>([]);
@@ -431,13 +488,16 @@ export default function BootPage() {
   const [ghostUnlocked, setGhostUnlocked] = useState(false);
   const [traceUnlocked, setTraceUnlocked] = useState(false);
   const [keyUnlocked, setKeyUnlocked] = useState(false);
-  const [systemStage, setSystemStage] = useState<SystemStage>('boot');
-  const [systemProgress, setSystemProgress] = useState(0);
+  const [systemStage, setSystemStage] = useState<SystemStage>('booting');
+  const [bootElapsedMs, setBootElapsedMs] = useState(0);
+  const [bootOverlayVisible, setBootOverlayVisible] = useState(false);
+  const [bootOverlayOpacity, setBootOverlayOpacity] = useState(1);
+  const [desktopVisible, setDesktopVisible] = useState(false);
 
   const loreUnlocked = finderClicks >= 3;
 
   const visibleIconIds = useMemo(() => {
-    const ids: IconId[] = ['listen', 'help', 'buy', 'steal'];
+    const ids: IconId[] = ['listen', 'help', 'buy', 'steal', 'quest'];
     if (loreUnlocked) {
       ids.push('lore');
     }
@@ -453,68 +513,60 @@ export default function BootPage() {
     return ids;
   }, [ghostUnlocked, keyUnlocked, loreUnlocked, traceUnlocked]);
 
-  const clearSystemTimers = () => {
+  const clearSystemTimers = useCallback(() => {
     if (systemFrameRef.current !== null) {
       window.cancelAnimationFrame(systemFrameRef.current);
       systemFrameRef.current = null;
     }
-    if (systemTimeoutRef.current !== null) {
-      window.clearTimeout(systemTimeoutRef.current);
-      systemTimeoutRef.current = null;
-    }
-  };
+  }, []);
 
-  const runBootAnimation = (durationMs: number) => {
+  const runBootAnimation = useCallback(() => {
     clearSystemTimers();
-    setSystemStage('boot');
-    setSystemProgress(0);
+    setSystemStage('booting');
+    setBootElapsedMs(0);
+    setBootOverlayVisible(false);
+    setBootOverlayOpacity(1);
+    setDesktopVisible(false);
 
     const startedAt = performance.now();
+    let desktopPhaseEntered = false;
 
     const tick = (now: number) => {
-      const progress = Math.min((now - startedAt) / durationMs, 1);
-      setSystemProgress(progress);
+      const elapsed = Math.min(now - startedAt, BOOT_TOTAL_MS);
+      setBootElapsedMs(elapsed);
 
-      if (progress < 1) {
+      if (elapsed >= BOOT_PHASE_TIMING.loaderEnd) {
+        if (!desktopPhaseEntered) {
+          desktopPhaseEntered = true;
+          setSystemStage('ready');
+          setBootOverlayVisible(true);
+        }
+
+        const desktopProgress = clamp(
+          (elapsed - BOOT_PHASE_TIMING.loaderEnd) /
+            (BOOT_PHASE_TIMING.desktopEnd - BOOT_PHASE_TIMING.loaderEnd),
+          0,
+          1
+        );
+
+        setDesktopVisible(desktopProgress > 0.01);
+        setBootOverlayOpacity(1 - desktopProgress);
+      }
+
+      if (elapsed < BOOT_TOTAL_MS) {
         systemFrameRef.current = window.requestAnimationFrame(tick);
         return;
       }
 
       window.sessionStorage.setItem(CHAMBER_BOOT_KEY, '1');
-      systemTimeoutRef.current = window.setTimeout(() => {
-        setSystemStage('ready');
-        systemTimeoutRef.current = null;
-      }, 120);
+      setSystemStage('ready');
+      setDesktopVisible(true);
+      setBootOverlayVisible(false);
+      setBootOverlayOpacity(0);
     };
 
     systemFrameRef.current = window.requestAnimationFrame(tick);
-  };
-
-  const handleRestart = () => {
-    clearSystemTimers();
-    setSystemStage('restart-progress');
-    setSystemProgress(0);
-
-    const durationMs = 3000;
-    const startedAt = performance.now();
-
-    const tick = (now: number) => {
-      const progress = Math.min((now - startedAt) / durationMs, 1);
-      setSystemProgress(progress);
-
-      if (progress < 1) {
-        systemFrameRef.current = window.requestAnimationFrame(tick);
-        return;
-      }
-
-      setSystemStage('restart-spinner');
-      systemTimeoutRef.current = window.setTimeout(() => {
-        runBootAnimation(5000);
-      }, 850);
-    };
-
-    systemFrameRef.current = window.requestAnimationFrame(tick);
-  };
+  }, [clearSystemTimers]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -522,16 +574,19 @@ export default function BootPage() {
     }
 
     if (window.sessionStorage.getItem(CHAMBER_BOOT_KEY) === '1') {
-      setSystemProgress(1);
-      setSystemStage('login');
+      setBootElapsedMs(BOOT_TOTAL_MS);
+      setSystemStage('ready');
+      setDesktopVisible(true);
+      setBootOverlayVisible(false);
+      setBootOverlayOpacity(0);
     } else {
-      runBootAnimation(5000);
+      runBootAnimation();
     }
 
     return () => {
       clearSystemTimers();
     };
-  }, []);
+  }, [clearSystemTimers, runBootAnimation]);
 
   useEffect(() => {
     if (!desktopRef.current) {
@@ -893,8 +948,103 @@ export default function BootPage() {
     return systemLine;
   }, [keyUnlocked, loreUnlocked, systemLine, traceUnlocked]);
 
+  const bootPhase: BootPhase =
+    bootElapsedMs < BOOT_PHASE_TIMING.postEnd
+      ? 'post'
+      : bootElapsedMs < BOOT_PHASE_TIMING.managerEnd
+        ? 'manager'
+        : bootElapsedMs < BOOT_PHASE_TIMING.loaderEnd
+          ? 'loader'
+          : 'desktop';
+  const totalProgress = clamp(bootElapsedMs / BOOT_TOTAL_MS, 0, 1);
+  const postVisibleCount =
+    bootPhase === 'post'
+      ? Math.max(1, Math.ceil((bootElapsedMs / BOOT_PHASE_TIMING.postEnd) * POST_LINES.length))
+      : POST_LINES.length;
+  const bootCountdown = Math.max(1, Math.ceil((BOOT_PHASE_TIMING.managerEnd - bootElapsedMs) / 1000));
+  const loaderProgress = clamp(
+    (bootElapsedMs - BOOT_PHASE_TIMING.managerEnd) / (BOOT_PHASE_TIMING.loaderEnd - BOOT_PHASE_TIMING.managerEnd),
+    0,
+    1
+  );
+  const loaderVisibleCount = Math.max(1, Math.ceil(loaderProgress * LOADER_LINES.length));
+
+  if (systemStage !== 'ready') {
+    return (
+      <main className="min-h-screen bg-black text-[#ecebe5]">
+        <section className="mx-auto flex min-h-screen w-full max-w-4xl flex-col justify-between px-4 py-7 sm:px-7 sm:py-8">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-5 font-mono text-[13px] leading-relaxed sm:text-sm">
+              {bootPhase === 'post' ? (
+                <div className="space-y-1">
+                  {POST_LINES.slice(0, postVisibleCount).map((line) => (
+                    <p key={line} className="text-[#ebeae3]">
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+
+              {bootPhase === 'manager' ? (
+                <div className="space-y-1">
+                  <p className="text-[#ebeae3]">CHAMBER BOOT MANAGER</p>
+                  <p className="text-[#d6d5cf]">ChamberOS v0.2 (build 0206.314)</p>
+                  <p className="text-[#d6d5cf]">Default: RESIDENT</p>
+                  <p className="text-[#ebeae3]">Booting in: {bootCountdown}...</p>
+                </div>
+              ) : null}
+
+              {bootPhase === 'loader' ? (
+                <div className="space-y-1">
+                  {LOADER_LINES.map((line, index) => (
+                    <p key={line} className={index < loaderVisibleCount ? 'text-[#ebeae3]' : 'text-[#666661]'}>
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+
+              {bootPhase === 'desktop' ? (
+                <div className="space-y-2">
+                  <p className="text-[#ebeae3]">DESKTOP_APPEARS</p>
+                  <span className="inline-flex h-6 w-6 animate-spin rounded-full border-2 border-[#d9d8d1]/45 border-t-[#f0efe9]" />
+                </div>
+              ) : null}
+            </div>
+
+            {bootPhase === 'post' ? (
+              <div className="flex w-[128px] shrink-0 flex-col items-end gap-2 pt-1 text-right">
+                <Image
+                  src="/chamber-star.svg"
+                  alt="Chamber Star mark"
+                  width={128}
+                  height={48}
+                  className="h-auto w-full object-contain opacity-90"
+                />
+                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#9c9b95]">energy compliant*</p>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="space-y-3">
+            <div className="h-[2px] overflow-hidden rounded bg-white/12">
+              <div className="h-full bg-white/75 transition-[width] duration-150 ease-linear" style={{ width: `${Math.round(totalProgress * 100)}%` }} />
+            </div>
+            <p className="font-mono text-[11px] text-[#a5a49f]">boot sequence in progress</p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-bg text-text">
+    <main
+      className={cn(
+        'relative min-h-screen bg-bg text-text transition-opacity duration-700 ease-calm',
+        desktopVisible ? 'opacity-100' : 'opacity-0',
+        bootOverlayVisible ? 'pointer-events-none' : ''
+      )}
+    >
       <header className="fixed inset-x-0 top-0 z-20 h-11 border-b border-border bg-[#09090b]/95 backdrop-blur-[1px]">
         <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between gap-3 px-2 sm:px-4">
           <div className="flex min-w-0 items-center gap-3 sm:gap-6">
@@ -967,7 +1117,7 @@ export default function BootPage() {
                     )}
                     aria-label={`${item.label}. ${item.hint}`}
                   >
-                    {item.type === 'folder' ? <FolderGlyph /> : <FileGlyph />}
+                    <DesktopGlyph item={item} />
                     <span className="mt-2 block text-base leading-tight text-text">{item.label}</span>
                     <span className="mt-1 block text-xs text-muted">{item.hint}</span>
                   </button>
@@ -1007,7 +1157,7 @@ export default function BootPage() {
                     )}
                     aria-label={`${item.label}. ${item.hint}`}
                   >
-                    {item.type === 'folder' ? <FolderGlyph /> : <FileGlyph />}
+                    <DesktopGlyph item={item} />
 
                     <span className="text-[19px] leading-none text-muted transition-colors duration-ui ease-calm group-hover:text-text sm:text-[22px]">
                       {item.label}
@@ -1099,6 +1249,16 @@ export default function BootPage() {
                   </div>
                   <p className="pt-3 text-sm text-muted">Both paths are valid. Guided is only a pacing layer.</p>
                 </>
+              ) : null}
+
+              {id === 'quest' ? (
+                <div className="overflow-hidden rounded-md border border-border bg-black/20">
+                  <iframe
+                    src="/chamber-text-quest?embedded=1&ui=91"
+                    title="Chamber Text Quest"
+                    className="h-[66svh] min-h-[430px] w-full bg-black sm:min-h-[500px]"
+                  />
+                </div>
               ) : null}
 
               {id === 'buy' ? (
@@ -1376,71 +1536,16 @@ trace.mount ....... available`}
         </div>
       </footer>
 
-      {systemStage === 'boot' ? (
-        <ChamberBootOverlay
-          label="System boot"
-          title="Chamber OS version 0.2"
-          subtitle="Loading desktop environment"
-          progress={systemProgress}
-        />
-      ) : null}
-
-      {systemStage === 'login' ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/76 px-4 backdrop-blur-[1px]">
-          <section className="w-full max-w-[560px] rounded-[12px] border border-border bg-[#0d0d0f] p-4 sm:p-5 animate-window-pop">
-            <p className="text-xs uppercase tracking-[0.12em] text-muted">Chambo OS</p>
-            <h2 className="mt-2 text-xl font-medium text-text">Returning session detected</h2>
-            <p className="mt-2 text-sm text-muted">Log in to continue, or restart to reboot the system.</p>
-
-            <div className="mt-5 grid gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setSystemStage('ready')}
-                className="inline-flex min-h-11 items-center justify-center rounded-md border border-border bg-surface px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                Login
-              </button>
-              <button
-                type="button"
-                onClick={handleRestart}
-                className="inline-flex min-h-11 items-center justify-center rounded-md border border-border px-4 text-sm text-muted transition-colors duration-ui ease-calm hover:border-accent hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                Restart
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
-
-      {systemStage === 'restart-progress' ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/76 px-4 backdrop-blur-[1px]">
-          <section className="w-full max-w-[560px] rounded-[12px] border border-border bg-[#0d0d0f] p-4 sm:p-5 animate-window-pop">
-            <p className="text-xs uppercase tracking-[0.12em] text-muted">Restart</p>
-            <h2 className="mt-2 text-xl font-medium text-text">Preparing system restart</h2>
-            <p className="mt-2 text-sm text-muted">Saving desktop state</p>
-            <div className="mt-4 h-[2px] overflow-hidden rounded bg-border">
-              <div
-                className="h-full bg-text transition-[width] duration-150 ease-linear"
-                style={{ width: `${Math.round(Math.min(Math.max(systemProgress, 0), 1) * 100)}%` }}
-              />
-            </div>
-          </section>
-        </div>
-      ) : null}
-
-      {systemStage === 'restart-spinner' ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/76 px-4 backdrop-blur-[1px]">
-          <section className="w-full max-w-[560px] rounded-[12px] border border-border bg-[#0d0d0f] p-4 sm:p-5 animate-window-pop">
-            <p className="text-xs uppercase tracking-[0.12em] text-muted">Restart</p>
-            <h2 className="mt-2 text-xl font-medium text-text">Re-initializing services</h2>
-            <p className="mt-2 text-sm text-muted">Please wait</p>
-            <div className="mt-5 flex justify-center">
-              <span
-                aria-hidden="true"
-                className="h-7 w-7 animate-spin rounded-full border-2 border-text/40 border-t-text"
-              />
-            </div>
-          </section>
+      {bootOverlayVisible ? (
+        <div
+          className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black transition-opacity duration-150 ease-linear"
+          style={{ opacity: bootOverlayOpacity }}
+          aria-hidden="true"
+        >
+          <div className="space-y-4 text-center">
+            <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-[#cdccc6]">DESKTOP_APPEARS</p>
+            <span className="inline-flex h-8 w-8 animate-spin rounded-full border-2 border-text/35 border-t-text" />
+          </div>
         </div>
       ) : null}
     </main>

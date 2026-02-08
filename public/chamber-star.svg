@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 128" role="img" aria-labelledby="title desc">
+  <title id="title">Chamber Star</title>
+  <desc id="desc">Chamber Star mark with glow and star ring.</desc>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f6f5f1" />
+      <stop offset="100%" stop-color="#d7d6d0" />
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-60%" width="180%" height="220%">
+      <feGaussianBlur stdDeviation="6" result="b" />
+      <feMerge>
+        <feMergeNode in="b" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#glow)" fill="url(#g)" stroke="#f1f0ea" stroke-width="1.2">
+    <text x="12" y="82" font-size="64" font-family="'Times New Roman', Georgia, serif" font-style="italic">
+      Chamber
+    </text>
+    <text x="210" y="104" font-size="40" font-family="'Times New Roman', Georgia, serif" font-style="italic">
+      Star
+    </text>
+    <circle cx="306" cy="67" r="34" fill="none" />
+    <path d="M306 32 L312 60 L340 67 L312 74 L306 102 L300 74 L272 67 L300 60 Z" />
+    <circle cx="306" cy="67" r="4.2" />
+  </g>
+</svg>
