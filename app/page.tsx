@@ -1,24 +1,60 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { accessLinks, downloadConfig, stealLinks } from '@/lib/config';
+import { TopBar } from '@/components/topbar/TopBar';
+import type { TopBarAction } from '@/components/topbar/menus';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { WindowControls } from '@/components/ui/window-controls';
+import { WindowManager } from '@/components/windows/WindowManager';
 import { useIsMobile } from '@/lib/hooks/use-is-mobile';
-import { readState, writeState } from '@/lib/storage';
-import type { ListeningMode } from '@/lib/types';
+import {
+  SIGIL_ID,
+  bringAllToFront,
+  closeWindow,
+  createWindow,
+  focusWindow,
+  getFocusedWindow,
+  minimiseWindow,
+  restoreWindow,
+  type AppId,
+  type ChamberWindow
+} from '@/lib/windowStore';
 import { cn } from '@/lib/utils';
 
-type WindowId = 'listen' | 'buy' | 'steal' | 'help' | 'lore' | 'trace' | 'ghost' | 'key' | 'quest';
-type MenuLabel = 'Finder' | 'File' | 'Edit' | 'View' | 'Window' | 'Help';
-type IconId = 'listen' | 'help' | 'lore' | 'trace' | 'key' | 'buy' | 'steal' | 'ghost' | 'quest';
-type SystemStage = 'booting' | 'login' | 'desktop';
-type BootPhase = 'post' | 'manager' | 'loader' | 'desktop';
+interface DesktopShortcut {
+  id: string;
+  label: string;
+  hint: string;
+  iconSrc: string;
+  appId: AppId;
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface WorkspaceSize {
+  width: number;
+  height: number;
+}
+
+interface DragShortcutState {
+  id: string;
+  offsetX: number;
+  offsetY: number;
+  moved: boolean;
+}
+
+interface DragWindowState {
+  id: string;
+  offsetX: number;
+  offsetY: number;
+}
+
+type SystemStage = 'boot' | 'login' | 'desktop';
+type BootPhase = 'post' | 'manager' | 'loader' | 'handoff';
 type AccountId = 'Knight' | 'Ghost' | 'Bat' | 'Parker' | 'Samuel';
 type AccountStatus = 'available' | 'locked' | 'banned';
 
@@ -28,63 +64,19 @@ interface LoginAccount {
   summary: string;
 }
 
-interface Point {
-  x: number;
-  y: number;
-}
-
-interface DesktopRect {
-  width: number;
-  height: number;
-}
-
-interface WindowLayout extends Point {
-  z: number;
-}
-
-type WindowRestoreLayout = Partial<Record<WindowId, Point>>;
-
-interface DragIconState {
-  id: IconId;
-  pointerId: number;
-  offsetX: number;
-  offsetY: number;
-  moved: boolean;
-}
-
-interface DragWindowState {
-  id: WindowId;
-  offsetX: number;
-  offsetY: number;
-}
-
-interface DesktopItem {
-  id: IconId;
-  label: string;
-  hint: string;
-  type: 'folder' | 'file' | 'app';
-  window: WindowId;
-}
-
-interface WindowSpec {
-  title: string;
-  subtitle: string;
-  width: number;
-  height: number;
-}
-
-const MENU_ITEMS: MenuLabel[] = ['Finder', 'File', 'Edit', 'View', 'Window', 'Help'];
-const ICON_IDS: IconId[] = ['listen', 'help', 'lore', 'trace', 'key', 'buy', 'steal', 'ghost', 'quest'];
-const WINDOW_IDS: WindowId[] = ['listen', 'buy', 'steal', 'help', 'lore', 'trace', 'ghost', 'key', 'quest'];
-const CHAMBER_BOOT_KEY = 'chamber-os-v0.2-booted';
+const SHORTCUT_CARD_WIDTH = 172;
+const SHORTCUT_CARD_HEIGHT = 104;
+const SHORTCUT_GRID_X = 188;
+const SHORTCUT_GRID_Y = 118;
+const SHORTCUT_MARGIN = 12;
+const BOOT_TOTAL_MS = 7000;
 const CHAMBER_OS_USER_KEY = 'chamber_os_user';
 const CHAMBER_OS_LOGGED_IN_KEY = 'chamber_os_logged_in';
-const BOOT_TOTAL_MS = 7000;
 const BOOT_PHASE_TIMING = {
-  postEnd: 1484,
-  managerEnd: 2275,
-  loaderEnd: 5950,
-  desktopEnd: BOOT_TOTAL_MS
+  postEnd: 1700,
+  managerEnd: 2600,
+  loaderEnd: 6800,
+  handoffEnd: BOOT_TOTAL_MS
 } as const;
 
 const POST_LINES = [
@@ -109,54 +101,12 @@ const LOADER_LINES = [
   'starting shell...'
 ] as const;
 
-const SYSTEM_LINES = [
-  'six chapters, recovered and released',
-  'guided: short lead-ins before first play',
-  'direct: immediate playback, no lead-in',
-  'appendix unlocks after guided completion',
-  'drag folders, select, and open'
-];
-
-const HELP_TEXT = `SECOND LIFE // help.txt
-
-- Single click to select.
-- Drag icons to reposition.
-- Drag on empty desktop to box-select.
-- Double click icon to open (single tap on mobile).
-
-Guided vs Direct:
-- Guided adds short lead-ins before first play.
-- Direct plays immediately.
-
-Hint:
-Click Finder three times, then run:
-Finder > View > Help`;
-
-const LORE_TEXT = `archive_note.log
-
-No perfect take survived.
-Only the one that stayed honest.
-
-Trace route now available on desktop.`;
-
-const TRACE_TEXT = `trace.route
-
-Checksum mismatch on recovered stems.
-Manual decode required.
-
-Run decode to unlock chamber.key`;
-
-const KEY_TEXT = `chamber.key
-
-Key accepted.
-Appendix path is now visible.`;
-
 const LOGIN_ACCOUNTS: LoginAccount[] = [
   { id: 'Knight', status: 'available', summary: 'visitor access' },
   { id: 'Ghost', status: 'locked', summary: 'password required' },
   { id: 'Bat', status: 'locked', summary: 'password required' },
   { id: 'Parker', status: 'locked', summary: 'password required' },
-  { id: 'Samuel', status: 'banned', summary: 'account disabled' }
+  { id: 'Samuel', status: 'banned', summary: 'account disabled (banned)' }
 ];
 
 const LOCKED_ERROR_POOL = [
@@ -172,151 +122,109 @@ const LOCKED_ERROR_POOL = [
   'Password accepted. User rejected.'
 ] as const;
 
-const DESKTOP_ITEMS: Record<IconId, DesktopItem> = {
-  listen: {
+const DESKTOP_SHORTCUTS: DesktopShortcut[] = [
+  {
+    id: 'quest',
+    label: 'Chamber Quest',
+    hint: 'resident app',
+    iconSrc: '/desktop-icons/chamber-quest.svg',
+    appId: 'text-quest'
+  },
+  {
     id: 'listen',
-    label: 'Listen to Second Life',
-    hint: 'Open guided/direct options.',
-    type: 'folder',
-    window: 'listen'
+    label: 'Listen To Second Life',
+    hint: 'guided + direct listening',
+    iconSrc: '/desktop-icons/listen-to-second-life.svg',
+    appId: 'listen'
   },
-  help: {
-    id: 'help',
-    label: 'help.txt',
-    hint: 'Basic controls and orientation.',
-    type: 'file',
-    window: 'help'
+  {
+    id: 'support',
+    label: 'Support',
+    hint: 'platform links',
+    iconSrc: '/desktop-icons/support.svg',
+    appId: 'support'
   },
-  lore: {
-    id: 'lore',
-    label: 'archive_note.log',
-    hint: 'Unlocked by Finder repetition.',
-    type: 'file',
-    window: 'lore'
-  },
-  trace: {
-    id: 'trace',
-    label: 'trace.route',
-    hint: 'Recovered route cache.',
-    type: 'file',
-    window: 'trace'
-  },
-  key: {
-    id: 'key',
-    label: 'chamber.key',
-    hint: 'Decode unlock.',
-    type: 'file',
-    window: 'key'
-  },
-  buy: {
-    id: 'buy',
-    label: 'Buy',
-    hint: 'Stream and support links.',
-    type: 'folder',
-    window: 'buy'
-  },
-  steal: {
+  {
     id: 'steal',
     label: 'Steal',
-    hint: 'Free-access mirror panel.',
-    type: 'folder',
-    window: 'steal'
-  },
-  ghost: {
-    id: 'ghost',
-    label: 'Ghost Cache',
-    hint: 'Unlocked by menu sequence.',
-    type: 'folder',
-    window: 'ghost'
-  },
-  quest: {
-    id: 'quest',
-    label: 'Chamber Text Quest',
-    hint: 'Retro parser game shortcut.',
-    type: 'app',
-    window: 'quest'
+    hint: 'free mirror panel',
+    iconSrc: '/desktop-icons/steal.svg',
+    appId: 'steal'
   }
-};
+];
 
-const WINDOW_SPECS: Record<WindowId, WindowSpec> = {
-  listen: { title: 'SECOND LIFE', subtitle: 'Listen to Second Life', width: 980, height: 430 },
-  buy: { title: 'BUY', subtitle: 'Platforms and support', width: 820, height: 470 },
-  steal: { title: 'STEAL', subtitle: 'Free-access mirror panel', width: 880, height: 520 },
-  help: { title: 'help.txt', subtitle: 'Quick orientation', width: 760, height: 470 },
-  lore: { title: 'archive_note.log', subtitle: 'Recovered artefact', width: 760, height: 390 },
-  trace: { title: 'trace.route', subtitle: 'Diagnostic route', width: 760, height: 430 },
-  ghost: { title: 'GHOST CACHE', subtitle: 'Hidden folder', width: 760, height: 430 },
-  key: { title: 'chamber.key', subtitle: 'Verification file', width: 720, height: 380 },
-  quest: { title: 'CHAMBER TEXT QUEST', subtitle: 'Resident parser game', width: 1020, height: 680 }
-};
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
 
-const ICON_WIDTH = 210;
-const ICON_HEIGHT = 106;
-const ICON_GRID_X = 228;
-const ICON_GRID_Y = 132;
-const ICON_EDGE = 24;
-
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
-const toSelectionRect = (a: Point, b: Point) => ({
-  x: Math.min(a.x, b.x),
-  y: Math.min(a.y, b.y),
-  width: Math.abs(a.x - b.x),
-  height: Math.abs(a.y - b.y)
-});
-
-const intersects = (
-  a: { x: number; y: number; width: number; height: number },
-  b: { x: number; y: number; width: number; height: number }
-) => a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
-
-function buildInitialIconPositions(width: number) {
-  const rightX = Math.max(ICON_EDGE, width - ICON_WIDTH - ICON_EDGE);
+function buildInitialShortcutPositions(width: number): Record<string, Point> {
+  const right = Math.max(SHORTCUT_MARGIN, width - SHORTCUT_CARD_WIDTH - SHORTCUT_MARGIN);
 
   return {
-    listen: { x: ICON_EDGE, y: ICON_EDGE },
-    help: { x: ICON_EDGE, y: ICON_EDGE + ICON_GRID_Y },
-    lore: { x: ICON_EDGE, y: ICON_EDGE + ICON_GRID_Y * 2 },
-    trace: { x: ICON_EDGE, y: ICON_EDGE + ICON_GRID_Y * 3 },
-    key: { x: ICON_EDGE, y: ICON_EDGE + ICON_GRID_Y * 4 },
-    buy: { x: rightX, y: ICON_EDGE },
-    steal: { x: rightX, y: ICON_EDGE + ICON_GRID_Y },
-    ghost: { x: rightX, y: ICON_EDGE + ICON_GRID_Y * 2 },
-    quest: { x: rightX, y: ICON_EDGE + ICON_GRID_Y * 3 }
+    quest: { x: SHORTCUT_MARGIN, y: SHORTCUT_MARGIN },
+    listen: { x: SHORTCUT_MARGIN, y: SHORTCUT_MARGIN + SHORTCUT_GRID_Y },
+    support: { x: right, y: SHORTCUT_MARGIN },
+    steal: { x: right, y: SHORTCUT_MARGIN + SHORTCUT_GRID_Y }
   };
 }
 
-function getWindowSize(id: WindowId, rect: DesktopRect) {
-  const spec = WINDOW_SPECS[id];
-  const width = Math.min(spec.width, Math.max(360, rect.width - 16));
-  const height = Math.min(spec.height, Math.max(260, rect.height - 16));
-  return { width, height };
-}
-
-function clampIconPoint(point: Point, rect: DesktopRect): Point {
+function clampShortcutPoint(point: Point, workspace: WorkspaceSize): Point {
   return {
-    x: clamp(point.x, 8, Math.max(8, rect.width - ICON_WIDTH - 8)),
-    y: clamp(point.y, 8, Math.max(8, rect.height - ICON_HEIGHT - 8))
+    x: clamp(point.x, SHORTCUT_MARGIN, Math.max(SHORTCUT_MARGIN, workspace.width - SHORTCUT_CARD_WIDTH - SHORTCUT_MARGIN)),
+    y: clamp(point.y, SHORTCUT_MARGIN, Math.max(SHORTCUT_MARGIN, workspace.height - SHORTCUT_CARD_HEIGHT - SHORTCUT_MARGIN))
   };
 }
 
-function snapIconPoint(point: Point, rect: DesktopRect): Point {
+function snapShortcutPoint(point: Point, workspace: WorkspaceSize): Point {
   const snapped = {
-    x: ICON_EDGE + Math.round((point.x - ICON_EDGE) / ICON_GRID_X) * ICON_GRID_X,
-    y: ICON_EDGE + Math.round((point.y - ICON_EDGE) / ICON_GRID_Y) * ICON_GRID_Y
+    x: SHORTCUT_MARGIN + Math.round((point.x - SHORTCUT_MARGIN) / SHORTCUT_GRID_X) * SHORTCUT_GRID_X,
+    y: SHORTCUT_MARGIN + Math.round((point.y - SHORTCUT_MARGIN) / SHORTCUT_GRID_Y) * SHORTCUT_GRID_Y
   };
-  return clampIconPoint(snapped, rect);
+
+  return clampShortcutPoint(snapped, workspace);
 }
 
-function clampWindowPoint(id: WindowId, point: Point, rect: DesktopRect): Point {
-  const size = getWindowSize(id, rect);
+function getRenderedWindowSize(window: ChamberWindow, workspace: WorkspaceSize, uiScale: number): { width: number; height: number } {
+  const maxWidth = Math.max(320, workspace.width - 12);
+  const maxHeight = Math.max(260, workspace.height - 12);
+
   return {
-    x: clamp(point.x, 4, Math.max(4, rect.width - size.width - 4)),
-    y: clamp(point.y, 4, Math.max(4, rect.height - size.height - 4))
+    width: Math.min(Math.round(window.width * uiScale), maxWidth),
+    height: Math.min(Math.round(window.height * uiScale), maxHeight)
   };
 }
 
-function statusDotClass(status: AccountStatus) {
+function clampWindowPoint(window: ChamberWindow, point: Point, workspace: WorkspaceSize, uiScale: number): Point {
+  const size = getRenderedWindowSize(window, workspace, uiScale);
+
+  return {
+    x: clamp(point.x, 4, Math.max(4, workspace.width - size.width - 4)),
+    y: clamp(point.y, 4, Math.max(4, workspace.height - size.height - 4))
+  };
+}
+
+function getTopWindowId(windows: ChamberWindow[]): string | null {
+  if (windows.length === 0) {
+    return null;
+  }
+
+  return [...windows].sort((a, b) => b.zIndex - a.zIndex)[0]?.id ?? null;
+}
+
+function getBootPhase(elapsedMs: number): BootPhase {
+  if (elapsedMs < BOOT_PHASE_TIMING.postEnd) {
+    return 'post';
+  }
+  if (elapsedMs < BOOT_PHASE_TIMING.managerEnd) {
+    return 'manager';
+  }
+  if (elapsedMs < BOOT_PHASE_TIMING.loaderEnd) {
+    return 'loader';
+  }
+  return 'handoff';
+}
+
+function statusDotClass(status: AccountStatus): string {
   if (status === 'available') {
     return 'bg-[#28c840]';
   }
@@ -326,352 +234,193 @@ function statusDotClass(status: AccountStatus) {
   return 'bg-[#febc2e]';
 }
 
-function FolderGlyph() {
+function ShortcutGlyph({ iconSrc, label }: { iconSrc: string; label: string }) {
   return (
-    <span aria-hidden="true" className="relative block h-[44px] w-[64px]">
-      <span className="absolute left-[6px] top-0 h-[11px] w-[24px] rounded-t-[4px] border border-border border-b-0 bg-zinc-500/70" />
-      <span className="absolute left-0 top-[9px] h-[35px] w-[64px] rounded-[5px] border border-border bg-zinc-500/75" />
+    <span aria-hidden="true" className="relative inline-flex h-14 w-14 items-center justify-center overflow-hidden rounded-[6px]">
+      <Image src={iconSrc} alt="" width={36} height={36} className="h-9 w-9 object-contain" />
+      <span className="sr-only">{label}</span>
     </span>
   );
 }
 
-function FileGlyph() {
-  return (
-    <span aria-hidden="true" className="relative block h-[48px] w-[36px]">
-      <span className="absolute inset-0 rounded-[4px] border border-border bg-zinc-500/75" />
-      <span className="absolute right-0 top-0 h-[13px] w-[13px] border-b border-l border-border bg-bg/85" />
-      <span className="absolute left-[7px] top-[19px] h-[1px] w-[20px] bg-border" />
-      <span className="absolute left-[7px] top-[24px] h-[1px] w-[20px] bg-border" />
-      <span className="absolute left-[7px] top-[29px] h-[1px] w-[14px] bg-border" />
-    </span>
-  );
-}
-
-function AppGlyph() {
-  return (
-    <span aria-hidden="true" className="relative block h-[48px] w-[48px] overflow-hidden rounded-[8px] border border-border">
-      <Image src="/chamber-text-quest-app-icon.png" alt="" width={48} height={48} className="h-full w-full object-cover" />
-    </span>
-  );
-}
-
-function DesktopGlyph({ item }: { item: DesktopItem }) {
-  if (item.type === 'folder') {
-    return <FolderGlyph />;
-  }
-  if (item.type === 'app') {
-    return <AppGlyph />;
-  }
-  return <FileGlyph />;
-}
-
-interface ListRowProps {
-  iconType?: 'folder' | 'file';
-  title: string;
-  detail: string;
-  status?: string;
-  action: ReactNode;
-}
-
-function ListRow({ iconType = 'folder', title, detail, status, action }: ListRowProps) {
-  return (
-    <article className="grid gap-3 border-b border-border px-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
-      <div className="flex items-start gap-3">
-        <span className="mt-1 shrink-0">{iconType === 'folder' ? <FolderGlyph /> : <FileGlyph />}</span>
-        <div>
-          <h3 className="text-base font-medium text-text">{title}</h3>
-          <p className="text-sm text-muted">{detail}</p>
-        </div>
-      </div>
-      <p className="self-center text-xs uppercase tracking-[0.1em] text-muted">{status ?? 'ready'}</p>
-      <div className="self-center justify-self-start sm:justify-self-end">{action}</div>
-    </article>
-  );
-}
-
-interface FinderWindowProps {
-  id: WindowId;
-  mobile: boolean;
-  expanded: boolean;
-  layout: WindowLayout;
-  desktopRect: DesktopRect;
-  onClose: () => void;
-  onMinimize: () => void;
-  onToggleExpand: () => void;
-  onBringToFront: () => void;
-  onHeaderPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void;
-  children: ReactNode;
-}
-
-function FinderWindow({
-  id,
-  mobile,
-  expanded,
-  layout,
-  desktopRect,
-  onClose,
-  onMinimize,
-  onToggleExpand,
-  onBringToFront,
-  onHeaderPointerDown,
-  children
-}: FinderWindowProps) {
-  const spec = WINDOW_SPECS[id];
-  const size = getWindowSize(id, desktopRect);
-
-  if (mobile) {
-    return (
-      <div className="fixed inset-0 z-40 bg-black/65 px-2 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-[calc(env(safe-area-inset-top)+3.5rem)] sm:px-3 sm:pt-[calc(env(safe-area-inset-top)+3.75rem)]">
-        <section
-          role="dialog"
-          aria-modal="true"
-          aria-label={spec.title}
-          className="flex h-full w-full flex-col overflow-hidden rounded-[12px] border border-border bg-[#0d0d0f] animate-window-pop"
-        >
-          <header className="border-b border-border bg-zinc-900/55 px-3 py-2">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <WindowControls onClose={onClose} onMinimize={onMinimize} onToggleExpand={onToggleExpand} expanded={expanded} />
-                <div>
-                  <p className="text-sm font-medium text-text">{spec.title}</p>
-                  <p className="text-[11px] text-muted">{spec.subtitle}</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="inline-flex min-h-11 items-center rounded-md px-2 text-xs text-muted transition-colors duration-ui ease-calm hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                close
-              </button>
-            </div>
-          </header>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-[#0b0b0d]/95 p-3">{children}</div>
-        </section>
-      </div>
-    );
-  }
-
-  return (
-    <section
-      role="dialog"
-      aria-modal="false"
-      aria-label={spec.title}
-      className="absolute overflow-hidden rounded-[12px] border border-border bg-[#0d0d0f] transition-[left,top,width,height,transform,opacity] duration-ui ease-calm animate-window-pop"
-      style={{
-        left: expanded ? 0 : layout.x,
-        top: expanded ? 0 : layout.y,
-        width: expanded ? desktopRect.width : size.width,
-        height: expanded ? desktopRect.height : size.height,
-        zIndex: layout.z
-      }}
-      onMouseDown={onBringToFront}
-    >
-      <header className="border-b border-border bg-zinc-900/55 px-3 py-2">
-        <div
-          className="flex cursor-move items-center justify-between gap-3"
-          onPointerDown={onHeaderPointerDown}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              onBringToFront();
-            }
-          }}
-          aria-label={`${spec.title} window title bar`}
-        >
-          <div className="flex items-center gap-4">
-            <WindowControls onClose={onClose} onMinimize={onMinimize} onToggleExpand={onToggleExpand} expanded={expanded} />
-            <div>
-                <p className="text-sm font-medium text-text">{spec.title}</p>
-                <p className="text-[11px] text-muted">{spec.subtitle}</p>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="h-[calc(100%-56px)] overflow-y-auto bg-[#0b0b0d]/95 p-3">{children}</div>
-    </section>
-  );
-}
-
-export default function BootPage() {
-  const router = useRouter();
+export default function HomePage() {
+  const workspaceRef = useRef<HTMLDivElement | null>(null);
   const isMobile = useIsMobile();
-  const desktopRef = useRef<HTMLDivElement>(null);
-  const zCounterRef = useRef(24);
-  const systemFrameRef = useRef<number | null>(null);
 
-  const [desktopRect, setDesktopRect] = useState<DesktopRect>({ width: 1200, height: 760 });
-  const [iconPositions, setIconPositions] = useState<Record<IconId, Point>>(() => buildInitialIconPositions(1200));
-  const [selectedIcons, setSelectedIcons] = useState<IconId[]>([]);
-  const [selectionStart, setSelectionStart] = useState<Point | null>(null);
-  const [selectionCurrent, setSelectionCurrent] = useState<Point | null>(null);
-  const [dragIcon, setDragIcon] = useState<DragIconState | null>(null);
-
-  const [openWindows, setOpenWindows] = useState<WindowId[]>([]);
-  const [windowLayouts, setWindowLayouts] = useState<Record<WindowId, WindowLayout>>({
-    listen: { x: 72, y: 52, z: 10 },
-    buy: { x: 100, y: 78, z: 11 },
-    steal: { x: 128, y: 104, z: 12 },
-    help: { x: 156, y: 130, z: 13 },
-    lore: { x: 182, y: 86, z: 14 },
-    trace: { x: 208, y: 112, z: 15 },
-    ghost: { x: 236, y: 94, z: 16 },
-    key: { x: 262, y: 120, z: 17 },
-    quest: { x: 288, y: 146, z: 18 }
-  });
-  const [dragWindow, setDragWindow] = useState<DragWindowState | null>(null);
-  const [expandedWindows, setExpandedWindows] = useState<WindowId[]>([]);
-  const [restoreLayouts, setRestoreLayouts] = useState<WindowRestoreLayout>({});
-
-  const [systemLine, setSystemLine] = useState(SYSTEM_LINES[0]);
-  const [finderClicks, setFinderClicks] = useState(0);
-  const [menuTrail, setMenuTrail] = useState<MenuLabel[]>([]);
-  const [ghostUnlocked, setGhostUnlocked] = useState(false);
-  const [traceUnlocked, setTraceUnlocked] = useState(false);
-  const [keyUnlocked, setKeyUnlocked] = useState(false);
-  const [systemStage, setSystemStage] = useState<SystemStage>('booting');
+  const [systemStage, setSystemStage] = useState<SystemStage>('boot');
+  const [sessionHydrated, setSessionHydrated] = useState(false);
   const [bootElapsedMs, setBootElapsedMs] = useState(0);
   const [selectedAccountId, setSelectedAccountId] = useState<AccountId>('Knight');
   const [loginPassword, setLoginPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [lockedErrorIndex, setLockedErrorIndex] = useState(-1);
-  const [loginFooterNote, setLoginFooterNote] = useState('Resident access panel.');
-
-  const loreUnlocked = finderClicks >= 3;
-
-  const visibleIconIds = useMemo(() => {
-    const ids: IconId[] = ['listen', 'help', 'buy', 'steal', 'quest'];
-    if (loreUnlocked) {
-      ids.push('lore');
-    }
-    if (traceUnlocked) {
-      ids.push('trace');
-    }
-    if (ghostUnlocked) {
-      ids.push('ghost');
-    }
-    if (keyUnlocked) {
-      ids.push('key');
-    }
-    return ids;
-  }, [ghostUnlocked, keyUnlocked, loreUnlocked, traceUnlocked]);
-
-  const selectedAccount = useMemo(
-    () => LOGIN_ACCOUNTS.find((account) => account.id === selectedAccountId) ?? LOGIN_ACCOUNTS[0],
-    [selectedAccountId]
-  );
-
-  const clearSystemTimers = useCallback(() => {
-    if (systemFrameRef.current !== null) {
-      window.cancelAnimationFrame(systemFrameRef.current);
-      systemFrameRef.current = null;
-    }
-  }, []);
-
-  const runBootAnimation = useCallback(() => {
-    clearSystemTimers();
-    setSystemStage('booting');
-    setBootElapsedMs(0);
-    setLoginError('');
-    setLoginPassword('');
-    setLoginFooterNote('Resident access panel.');
-    setSelectedAccountId('Knight');
-
-    const startedAt = performance.now();
-
-    const tick = (now: number) => {
-      const elapsed = Math.min(now - startedAt, BOOT_TOTAL_MS);
-      setBootElapsedMs(elapsed);
-
-      if (elapsed < BOOT_TOTAL_MS) {
-        systemFrameRef.current = window.requestAnimationFrame(tick);
-        return;
-      }
-
-      window.sessionStorage.setItem(CHAMBER_BOOT_KEY, '1');
-      setSystemStage('login');
-    };
-
-    systemFrameRef.current = window.requestAnimationFrame(tick);
-  }, [clearSystemTimers]);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [lastErrorIndex, setLastErrorIndex] = useState<number>(-1);
+  const [windows, setWindows] = useState<ChamberWindow[]>([]);
+  const [focusedWindowId, setFocusedWindowId] = useState<string | null>(null);
+  const [uiScale, setUiScale] = useState(1);
+  const [toast, setToast] = useState<string | null>(null);
+  const [selectedShortcutId, setSelectedShortcutId] = useState<string | null>(null);
+  const [workspace, setWorkspace] = useState<WorkspaceSize>({ width: 1200, height: 760 });
+  const [shortcutPositions, setShortcutPositions] = useState<Record<string, Point>>(() => buildInitialShortcutPositions(1200));
+  const [dragShortcut, setDragShortcut] = useState<DragShortcutState | null>(null);
+  const [blockedShortcutOpenId, setBlockedShortcutOpenId] = useState<string | null>(null);
+  const [dragWindow, setDragWindow] = useState<DragWindowState | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
 
-    const loggedIn = window.localStorage.getItem(CHAMBER_OS_LOGGED_IN_KEY) === 'true';
-    const user = window.localStorage.getItem(CHAMBER_OS_USER_KEY);
+    const rememberedUser = window.localStorage.getItem(CHAMBER_OS_USER_KEY);
+    const rememberedLogin = window.localStorage.getItem(CHAMBER_OS_LOGGED_IN_KEY);
 
-    if (loggedIn && user === 'Knight') {
-      setBootElapsedMs(BOOT_TOTAL_MS);
+    if (rememberedUser === 'Knight' && rememberedLogin === 'true') {
       setSystemStage('desktop');
-      setSelectedAccountId('Knight');
-      return;
-    }
-
-    if (window.sessionStorage.getItem(CHAMBER_BOOT_KEY) === '1') {
       setBootElapsedMs(BOOT_TOTAL_MS);
-      setSystemStage('login');
-      setSelectedAccountId('Knight');
-      return;
+    } else {
+      setSystemStage('boot');
+      setBootElapsedMs(0);
     }
 
-    runBootAnimation();
-
-    return () => {
-      clearSystemTimers();
-    };
-  }, [clearSystemTimers, runBootAnimation]);
+    setSessionHydrated(true);
+  }, []);
 
   useEffect(() => {
-    if (!desktopRef.current) {
+    if (!sessionHydrated || systemStage !== 'boot') {
       return;
     }
 
-    const observe = () => {
-      if (!desktopRef.current) {
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      if (elapsed >= BOOT_TOTAL_MS) {
+        setBootElapsedMs(BOOT_TOTAL_MS);
+        setSystemStage('login');
+        window.clearInterval(timer);
         return;
       }
-      setDesktopRect({
-        width: desktopRef.current.clientWidth,
-        height: desktopRef.current.clientHeight
+      setBootElapsedMs(elapsed);
+    }, 50);
+
+    return () => window.clearInterval(timer);
+  }, [sessionHydrated, systemStage]);
+
+  useEffect(() => {
+    if (!workspaceRef.current) {
+      return;
+    }
+
+    const node = workspaceRef.current;
+
+    const update = () => {
+      setWorkspace({
+        width: node.clientWidth,
+        height: node.clientHeight
       });
     };
 
-    observe();
+    update();
 
-    const observer = new ResizeObserver(observe);
-    observer.observe(desktopRef.current);
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
 
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    setIconPositions((current) => {
-      const next = { ...current };
-      for (const id of ICON_IDS) {
-        next[id] = clampIconPoint(next[id], desktopRect);
-      }
-      return next;
-    });
+    if (!toast) {
+      return;
+    }
 
-    setWindowLayouts((current) => {
-      const next = { ...current };
-      for (const id of WINDOW_IDS) {
-        next[id] = { ...next[id], ...clampWindowPoint(id, next[id], desktopRect) };
-      }
-      return next;
-    });
-  }, [desktopRect]);
+    const timer = window.setTimeout(() => setToast(null), 1500);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
-    if (finderClicks === 3) {
-      setSystemLine('archive_note.log unlocked');
+    if (isMobile) {
+      return;
     }
-  }, [finderClicks]);
+
+    setShortcutPositions((current) => {
+      const fallback = buildInitialShortcutPositions(workspace.width);
+      const next: Record<string, Point> = {};
+
+      for (const shortcut of DESKTOP_SHORTCUTS) {
+        const currentPoint = current[shortcut.id] ?? fallback[shortcut.id] ?? { x: SHORTCUT_MARGIN, y: SHORTCUT_MARGIN };
+        next[shortcut.id] = clampShortcutPoint(currentPoint, workspace);
+      }
+
+      return next;
+    });
+
+    setWindows((current) =>
+      current.map((window) => ({
+        ...window,
+        ...clampWindowPoint(window, { x: window.x, y: window.y }, workspace, uiScale)
+      }))
+    );
+  }, [isMobile, uiScale, workspace]);
+
+  useEffect(() => {
+    if (!dragShortcut || isMobile) {
+      return;
+    }
+
+    const handleMove = (event: PointerEvent) => {
+      const rect = workspaceRef.current?.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
+
+      setShortcutPositions((current) => ({
+        ...current,
+        [dragShortcut.id]: clampShortcutPoint(
+          {
+            x: event.clientX - rect.left - dragShortcut.offsetX,
+            y: event.clientY - rect.top - dragShortcut.offsetY
+          },
+          workspace
+        )
+      }));
+
+      setDragShortcut((state) => (state && !state.moved ? { ...state, moved: true } : state));
+    };
+
+    const handleUp = () => {
+      setShortcutPositions((current) => {
+        const point = current[dragShortcut.id];
+        if (!point) {
+          return current;
+        }
+
+        return {
+          ...current,
+          [dragShortcut.id]: snapShortcutPoint(point, workspace)
+        };
+      });
+
+      if (dragShortcut.moved) {
+        setBlockedShortcutOpenId(dragShortcut.id);
+      }
+      setDragShortcut(null);
+    };
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp);
+
+    return () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+    };
+  }, [dragShortcut, isMobile, workspace]);
+
+  useEffect(() => {
+    if (!blockedShortcutOpenId) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => setBlockedShortcutOpenId(null), 120);
+    return () => window.clearTimeout(timer);
+  }, [blockedShortcutOpenId]);
 
   useEffect(() => {
     if (!dragWindow || isMobile) {
@@ -679,28 +428,31 @@ export default function BootPage() {
     }
 
     const handleMove = (event: PointerEvent) => {
-      setWindowLayouts((current) => {
-        if (expandedWindows.includes(dragWindow.id)) {
-          return current;
-        }
+      const rect = workspaceRef.current?.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
 
-        const nextPoint = clampWindowPoint(
-          dragWindow.id,
-          {
-            x: event.clientX - dragWindow.offsetX,
-            y: event.clientY - dragWindow.offsetY
-          },
-          desktopRect
-        );
-
-        return {
-          ...current,
-          [dragWindow.id]: {
-            ...current[dragWindow.id],
-            ...nextPoint
+      setWindows((current) =>
+        current.map((window) => {
+          if (window.id !== dragWindow.id) {
+            return window;
           }
-        };
-      });
+
+          return {
+            ...window,
+            ...clampWindowPoint(
+              window,
+              {
+                x: event.clientX - rect.left - dragWindow.offsetX,
+                y: event.clientY - rect.top - dragWindow.offsetY
+              },
+              workspace,
+              uiScale
+            )
+          };
+        })
+      );
     };
 
     const handleUp = () => setDragWindow(null);
@@ -712,436 +464,301 @@ export default function BootPage() {
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('pointerup', handleUp);
     };
-  }, [desktopRect, dragWindow, expandedWindows, isMobile]);
+  }, [dragWindow, isMobile, uiScale, workspace]);
 
-  const selectionRect = useMemo(() => {
-    if (!selectionStart || !selectionCurrent) {
-      return null;
-    }
-    return toSelectionRect(selectionStart, selectionCurrent);
-  }, [selectionCurrent, selectionStart]);
+  const openWindowForApp = useCallback(
+    (appId: AppId) => {
+      setWindows((current) => {
+        const nextWindow = createWindow(appId, current);
+        const clamped = isMobile
+          ? nextWindow
+          : {
+              ...nextWindow,
+              ...clampWindowPoint(nextWindow, { x: nextWindow.x, y: nextWindow.y }, workspace, uiScale)
+            };
 
-  const openWindow = (id: WindowId) => {
-    if (id === 'lore' && loreUnlocked && !traceUnlocked) {
-      setTraceUnlocked(true);
-      setSystemLine('trace.route unlocked');
-    }
+        setFocusedWindowId(clamped.id);
+        return [...current, clamped];
+      });
+    },
+    [isMobile, uiScale, workspace]
+  );
 
-    if (isMobile) {
-      setOpenWindows([id]);
-    } else {
-      setOpenWindows((current) => (current.includes(id) ? current : [...current, id]));
-    }
+  const focusById = useCallback((windowId: string) => {
+    setWindows((current) => focusWindow(current, windowId));
+    setFocusedWindowId(windowId);
+  }, []);
 
-    zCounterRef.current += 1;
-    setWindowLayouts((current) => {
-      const currentLayout = current[id];
-      const fallbackPoint = clampWindowPoint(
-        id,
-        {
-          x: 64 + (zCounterRef.current % 7) * 22,
-          y: 48 + (zCounterRef.current % 5) * 20
-        },
-        desktopRect
-      );
-
-      return {
-        ...current,
-        [id]: {
-          x: currentLayout?.x ?? fallbackPoint.x,
-          y: currentLayout?.y ?? fallbackPoint.y,
-          z: zCounterRef.current
-        }
-      };
-    });
-  };
-
-  const closeWindow = (id: WindowId) => {
-    setOpenWindows((current) => current.filter((item) => item !== id));
-    setExpandedWindows((current) => current.filter((item) => item !== id));
-  };
-
-  const minimizeWindow = (id: WindowId) => {
-    closeWindow(id);
-    setSystemLine(`${WINDOW_SPECS[id].title} minimized`);
-  };
-
-  const toggleExpandWindow = (id: WindowId) => {
-    if (isMobile) {
-      return;
-    }
-
-    const expanded = expandedWindows.includes(id);
-
-    if (expanded) {
-      setExpandedWindows((current) => current.filter((item) => item !== id));
-
-      const restore = restoreLayouts[id];
-      if (restore) {
-        setWindowLayouts((current) => ({
-          ...current,
-          [id]: {
-            ...current[id],
-            ...clampWindowPoint(id, restore, desktopRect)
-          }
-        }));
-      }
-      return;
-    }
-
-    setRestoreLayouts((current) => ({
-      ...current,
-      [id]: {
-        x: windowLayouts[id].x,
-        y: windowLayouts[id].y
-      }
-    }));
-    setExpandedWindows((current) => [...current, id]);
-    bringWindowToFront(id);
-  };
-
-  const bringWindowToFront = (id: WindowId) => {
-    zCounterRef.current += 1;
-    setWindowLayouts((current) => ({
-      ...current,
-      [id]: {
-        ...current[id],
-        z: zCounterRef.current
-      }
-    }));
-  };
-
-  const setListeningMode = (mode: ListeningMode) => {
-    const nextState = {
-      ...readState(),
-      mode
-    };
-
-    writeState(nextState);
-    router.push(`/chapters?mode=${mode}&boot=1&app=cmp`);
-  };
-
-  const handleMenuClick = (menu: MenuLabel) => {
-    if (menu === 'Finder') {
-      setFinderClicks((current) => current + 1);
-    }
-
-    if (menu === 'Help') {
-      openWindow('help');
-    }
-
-    setMenuTrail((current) => {
-      const next = [...current, menu].slice(-3);
-      if (next.join('>') === 'Finder>View>Help' && !ghostUnlocked) {
-        setGhostUnlocked(true);
-        setSystemLine('Ghost Cache unlocked');
-      }
+  const closeById = useCallback((windowId: string) => {
+    setWindows((current) => {
+      const next = closeWindow(current, windowId);
+      setFocusedWindowId((focused) => (focused === windowId ? getTopWindowId(next) : focused));
       return next;
     });
+  }, []);
 
-    const nextLine = SYSTEM_LINES[(MENU_ITEMS.indexOf(menu) + finderClicks + 1) % SYSTEM_LINES.length];
-    setSystemLine(nextLine);
-  };
-
-  const getLocalPoint = (clientX: number, clientY: number): Point => {
-    if (!desktopRef.current) {
-      return { x: 0, y: 0 };
-    }
-    const rect = desktopRef.current.getBoundingClientRect();
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
-    };
-  };
-
-  const handleDesktopPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (isMobile || event.target !== event.currentTarget) {
-      return;
-    }
-
-    const local = getLocalPoint(event.clientX, event.clientY);
-    setSelectionStart(local);
-    setSelectionCurrent(local);
-    setSelectedIcons([]);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const handleDesktopPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (isMobile || !selectionStart) {
-      return;
-    }
-
-    setSelectionCurrent(getLocalPoint(event.clientX, event.clientY));
-  };
-
-  const handleDesktopPointerUp = () => {
-    if (isMobile || !selectionStart || !selectionCurrent) {
-      setSelectionStart(null);
-      setSelectionCurrent(null);
-      return;
-    }
-
-    const rect = toSelectionRect(selectionStart, selectionCurrent);
-
-    const selected = visibleIconIds.filter((id) =>
-      intersects(
-        rect,
-        {
-          x: iconPositions[id].x,
-          y: iconPositions[id].y,
-          width: ICON_WIDTH,
-          height: ICON_HEIGHT
+  const minimiseById = useCallback((windowId: string) => {
+    setWindows((current) => {
+      const next = minimiseWindow(current, windowId);
+      setFocusedWindowId((focused) => {
+        if (focused !== windowId) {
+          return focused;
         }
-      )
-    );
-
-    setSelectedIcons(selected);
-    setSelectionStart(null);
-    setSelectionCurrent(null);
-  };
-
-  const handleIconPointerDown = (event: React.PointerEvent<HTMLButtonElement>, id: IconId) => {
-    if (isMobile) {
-      return;
-    }
-
-    event.stopPropagation();
-    const local = getLocalPoint(event.clientX, event.clientY);
-
-    setDragIcon({
-      id,
-      pointerId: event.pointerId,
-      offsetX: local.x - iconPositions[id].x,
-      offsetY: local.y - iconPositions[id].y,
-      moved: false
+        const visible = next.filter((window) => !window.isMinimised);
+        return getTopWindowId(visible);
+      });
+      return next;
     });
-    setSelectedIcons([id]);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
+  }, []);
 
-  const handleIconPointerMove = (event: React.PointerEvent<HTMLButtonElement>, id: IconId) => {
-    if (!dragIcon || dragIcon.id !== id || dragIcon.pointerId !== event.pointerId || isMobile) {
-      return;
-    }
-
-    const local = getLocalPoint(event.clientX, event.clientY);
-
-    setIconPositions((current) => {
-      const nextPoint = clampIconPoint(
-        {
-          x: local.x - dragIcon.offsetX,
-          y: local.y - dragIcon.offsetY
-        },
-        desktopRect
-      );
-
-      const delta = Math.abs(current[id].x - nextPoint.x) + Math.abs(current[id].y - nextPoint.y);
-      if (!dragIcon.moved && delta > 3) {
-        setDragIcon((state) => (state ? { ...state, moved: true } : null));
+  const startWindowDrag = useCallback(
+    (event: ReactPointerEvent<HTMLElement>, windowId: string) => {
+      if (isMobile) {
+        return;
       }
 
-      return {
-        ...current,
-        [id]: nextPoint
-      };
-    });
-  };
+      const rect = workspaceRef.current?.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
 
-  const handleIconPointerUp = (event: React.PointerEvent<HTMLButtonElement>, id: IconId) => {
-    if (!dragIcon || dragIcon.id !== id || dragIcon.pointerId !== event.pointerId || isMobile) {
-      return;
-    }
+      const target = windows.find((window) => window.id === windowId);
+      if (!target) {
+        return;
+      }
 
-    if (dragIcon.moved) {
-      setIconPositions((current) => ({
-        ...current,
-        [id]: snapIconPoint(current[id], desktopRect)
-      }));
-    }
+      setDragWindow({
+        id: windowId,
+        offsetX: event.clientX - rect.left - target.x,
+        offsetY: event.clientY - rect.top - target.y
+      });
 
-    setDragIcon(null);
-  };
+      focusById(windowId);
+    },
+    [focusById, isMobile, windows]
+  );
 
-  const unlockKey = () => {
-    if (keyUnlocked) {
-      openWindow('key');
-      return;
-    }
-
-    setKeyUnlocked(true);
-    setSystemLine('chamber.key unlocked');
-    openWindow('key');
-  };
-
-  const selectAccount = (accountId: AccountId) => {
-    setSelectedAccountId(accountId);
-    setLoginPassword('');
-    setLoginFooterNote('Resident access panel.');
-    if (accountId === 'Samuel') {
-      setLoginError('ACCOUNT DISABLED (BANNED)');
-      return;
-    }
-    setLoginError('');
-  };
-
-  const triggerLockedFailure = useCallback(() => {
-    const next = (lockedErrorIndex + 1) % LOCKED_ERROR_POOL.length;
-    setLockedErrorIndex(next);
-    setLoginError(LOCKED_ERROR_POOL[next]);
-    setLoginPassword('');
-  }, [lockedErrorIndex]);
-
-  const loginAsKnight = () => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(CHAMBER_OS_USER_KEY, 'Knight');
-      window.localStorage.setItem(CHAMBER_OS_LOGGED_IN_KEY, 'true');
-      window.sessionStorage.setItem(CHAMBER_BOOT_KEY, '1');
-    }
-    setLoginError('');
-    setLoginPassword('');
-    setSystemLine('Knight session active');
-    setSystemStage('desktop');
-  };
-
-  const logoutToLogin = () => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(CHAMBER_OS_USER_KEY);
-      window.localStorage.removeItem(CHAMBER_OS_LOGGED_IN_KEY);
-    }
-
-    setSystemStage('login');
-    setSelectedAccountId('Knight');
-    setLoginError('');
-    setLoginPassword('');
-    setLoginFooterNote('Session closed. Visitor access only.');
-    setOpenWindows([]);
-    setSelectedIcons([]);
-    setSelectionStart(null);
-    setSelectionCurrent(null);
-    setExpandedWindows([]);
-    setDragWindow(null);
-    setDragIcon(null);
-    clearSystemTimers();
-  };
-
-  const restartSystem = () => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(CHAMBER_OS_USER_KEY);
-      window.localStorage.removeItem(CHAMBER_OS_LOGGED_IN_KEY);
-      window.sessionStorage.removeItem(CHAMBER_BOOT_KEY);
-    }
-    setOpenWindows([]);
-    setExpandedWindows([]);
-    setDragWindow(null);
-    setDragIcon(null);
-    runBootAnimation();
-  };
-
-  const shutDownSystem = () => {
-    setSystemStage('login');
-    setSelectedAccountId('Knight');
-    setLoginPassword('');
-    setLoginError('');
-    setLoginFooterNote('System idle. Click Knight to continue.');
-  };
-
-  const menuHint = useMemo(() => {
-    if (keyUnlocked) {
-      return 'chamber.key active';
-    }
-    if (traceUnlocked) {
-      return 'trace.route active';
-    }
-    if (loreUnlocked) {
-      return 'archive_note.log available';
-    }
-    return systemLine;
-  }, [keyUnlocked, loreUnlocked, systemLine, traceUnlocked]);
-
-  const bootPhase: BootPhase =
-    bootElapsedMs < BOOT_PHASE_TIMING.postEnd
-      ? 'post'
-      : bootElapsedMs < BOOT_PHASE_TIMING.managerEnd
-        ? 'manager'
-        : bootElapsedMs < BOOT_PHASE_TIMING.loaderEnd
-          ? 'loader'
-          : 'desktop';
-  const totalProgress = clamp(bootElapsedMs / BOOT_TOTAL_MS, 0, 1);
-  const postVisibleCount =
-    bootPhase === 'post'
-      ? Math.max(1, Math.ceil((bootElapsedMs / BOOT_PHASE_TIMING.postEnd) * POST_LINES.length))
-      : POST_LINES.length;
-  const bootCountdown = Math.max(1, Math.ceil((BOOT_PHASE_TIMING.managerEnd - bootElapsedMs) / 1000));
+  const minimisedWindows = useMemo(
+    () => windows.filter((window) => window.isMinimised).sort((a, b) => a.zIndex - b.zIndex),
+    [windows]
+  );
+  const selectedAccount = LOGIN_ACCOUNTS.find((account) => account.id === selectedAccountId) ?? LOGIN_ACCOUNTS[0];
+  const bootPhase = getBootPhase(bootElapsedMs);
+  const bootProgress = clamp(bootElapsedMs / BOOT_TOTAL_MS, 0, 1);
+  const managerCountdown = Math.max(0, Math.ceil((BOOT_PHASE_TIMING.managerEnd - bootElapsedMs) / 1000));
   const loaderProgress = clamp(
     (bootElapsedMs - BOOT_PHASE_TIMING.managerEnd) / (BOOT_PHASE_TIMING.loaderEnd - BOOT_PHASE_TIMING.managerEnd),
     0,
     1
   );
   const loaderVisibleCount = Math.max(1, Math.ceil(loaderProgress * LOADER_LINES.length));
-  const otherAccounts = LOGIN_ACCOUNTS.filter((account) => account.id !== selectedAccount.id);
 
-  if (systemStage === 'booting') {
+  const handleTopBarAction = useCallback(
+    (action: TopBarAction) => {
+      if (action.type === 'open-window') {
+        openWindowForApp(action.appId);
+        return;
+      }
+
+      if (action.type === 'new-window') {
+        setWindows((current) => {
+          const focused = getFocusedWindow(current, focusedWindowId);
+          const nextWindow = createWindow(focused?.appId ?? 'notes', current);
+          const clamped = isMobile
+            ? nextWindow
+            : {
+                ...nextWindow,
+                ...clampWindowPoint(nextWindow, { x: nextWindow.x, y: nextWindow.y }, workspace, uiScale)
+              };
+
+          setFocusedWindowId(clamped.id);
+          return [...current, clamped];
+        });
+        return;
+      }
+
+      if (action.type === 'close-focused-window') {
+        if (!focusedWindowId) {
+          return;
+        }
+        closeById(focusedWindowId);
+        return;
+      }
+
+      if (action.type === 'reset-desktop') {
+        setWindows([]);
+        setFocusedWindowId(null);
+        setToast('desktop reset');
+        return;
+      }
+
+      if (action.type === 'copy-sigil-id') {
+        void navigator.clipboard
+          .writeText(SIGIL_ID)
+          .then(() => setToast('sigil copied'))
+          .catch(() => setToast('clipboard unavailable'));
+        return;
+      }
+
+      if (action.type === 'paste') {
+        setToast('paste has no target');
+        return;
+      }
+
+      if (action.type === 'zoom-in') {
+        setUiScale((current) => Math.min(current + 0.05, 1.25));
+        return;
+      }
+
+      if (action.type === 'zoom-out') {
+        setUiScale((current) => Math.max(current - 0.05, 0.85));
+        return;
+      }
+
+      if (action.type === 'focus-desktop') {
+        setFocusedWindowId(null);
+        setSelectedShortcutId(null);
+        return;
+      }
+
+      if (action.type === 'minimise-focused-window') {
+        if (!focusedWindowId) {
+          return;
+        }
+
+        setWindows((current) => {
+          const next = minimiseWindow(current, focusedWindowId);
+          const remaining = next.filter((window) => !window.isMinimised);
+          setFocusedWindowId(getTopWindowId(remaining));
+          return next;
+        });
+        return;
+      }
+
+      if (action.type === 'bring-all-to-front') {
+        setWindows((current) => bringAllToFront(current));
+        return;
+      }
+
+      if (action.type === 'focus-window') {
+        setWindows((current) => {
+          const target = current.find((window) => window.id === action.windowId);
+          if (!target) {
+            return current;
+          }
+
+          let next = current;
+          if (target.isMinimised) {
+            next = restoreWindow(next, target.id);
+          }
+          return focusWindow(next, target.id);
+        });
+        setFocusedWindowId(action.windowId);
+      }
+    },
+    [closeById, focusedWindowId, isMobile, openWindowForApp, uiScale, workspace]
+  );
+
+  const setKnightSession = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(CHAMBER_OS_USER_KEY, 'Knight');
+      window.localStorage.setItem(CHAMBER_OS_LOGGED_IN_KEY, 'true');
+    }
+    setLoginError(null);
+    setLoginPassword('');
+    setSystemStage('desktop');
+  }, []);
+
+  const restartFromLogin = useCallback(() => {
+    setLoginError(null);
+    setLoginPassword('');
+    setSelectedAccountId('Knight');
+    setBootElapsedMs(0);
+    setSystemStage('boot');
+  }, []);
+
+  const logoutToLogin = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(CHAMBER_OS_USER_KEY);
+      window.localStorage.removeItem(CHAMBER_OS_LOGGED_IN_KEY);
+    }
+
+    setWindows([]);
+    setFocusedWindowId(null);
+    setLoginError(null);
+    setLoginPassword('');
+    setSelectedAccountId('Knight');
+    setSystemStage('login');
+  }, []);
+
+  const handleLockedAttempt = useCallback(() => {
+    const poolLength = LOCKED_ERROR_POOL.length;
+    const randomIndex = Math.floor(Math.random() * (poolLength - 1));
+    const nextIndex = randomIndex >= lastErrorIndex ? randomIndex + 1 : randomIndex;
+    setLastErrorIndex(nextIndex);
+    setLoginError(LOCKED_ERROR_POOL[nextIndex]);
+    setLoginPassword('');
+  }, [lastErrorIndex]);
+
+  if (!sessionHydrated) {
+    return <main className="min-h-dvh bg-black" />;
+  }
+
+  if (systemStage === 'boot') {
     return (
-      <main className="min-h-dvh bg-black text-[#ecebe5]">
-        <section className="mx-auto flex min-h-dvh w-full max-w-4xl flex-col justify-between px-4 py-7 sm:px-7 sm:py-8">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-5 font-mono text-[13px] leading-relaxed sm:text-sm">
-              {bootPhase === 'post' ? (
-                <div className="space-y-1">
-                  {POST_LINES.slice(0, postVisibleCount).map((line) => (
-                    <p key={line} className="text-[#ebeae3]">
-                      {line}
-                    </p>
-                  ))}
-                </div>
-              ) : null}
-
-              {bootPhase === 'manager' ? (
-                <div className="space-y-1">
-                  <p className="text-[#ebeae3]">CHAMBER BOOT MANAGER</p>
-                  <p className="text-[#d6d5cf]">ChamberOS v0.2 (build 0206.314)</p>
-                  <p className="text-[#d6d5cf]">Default: RESIDENT</p>
-                  <p className="text-[#ebeae3]">Booting in: {bootCountdown}...</p>
-                </div>
-              ) : null}
-
-              {bootPhase === 'loader' ? (
-                <div className="space-y-1">
-                  {LOADER_LINES.map((line, index) => (
-                    <p key={line} className={index < loaderVisibleCount ? 'text-[#ebeae3]' : 'text-[#666661]'}>
-                      {line}
-                    </p>
-                  ))}
-                </div>
-              ) : null}
-
-              {bootPhase === 'desktop' ? (
-                <div className="space-y-2">
-                  <p className="text-[#ebeae3]">DESKTOP_APPEARS</p>
-                  <span className="inline-flex h-6 w-6 animate-spin rounded-full border-2 border-[#d9d8d1]/45 border-t-[#f0efe9]" />
-                </div>
-              ) : null}
-            </div>
-
+      <main className="relative min-h-dvh overflow-hidden bg-black text-[#d8d8d8]">
+        <section className="absolute inset-0 p-5 sm:p-6">
+          <div className="mx-auto h-full w-full max-w-[980px] rounded-[8px] border border-border/60 bg-black/85 p-4 font-mono text-[13px] leading-6 sm:text-sm">
             {bootPhase === 'post' ? (
-              <div className="flex w-[128px] shrink-0 flex-col items-end gap-2 pt-1 text-right">
-                <Image
-                  src="/chamber-star.svg"
-                  alt="Chamber Star mark"
-                  width={128}
-                  height={48}
-                  className="h-auto w-full object-contain opacity-90"
-                />
-                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#9c9b95]">energy compliant*</p>
+              <div className="relative h-full">
+                <div className="absolute right-0 top-0 hidden text-right sm:block">
+                  <Image src="/chamber-star.svg" alt="Chamber Star" width={180} height={64} className="h-auto w-[180px] opacity-90" />
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[#b8b8b8]">certified resident build</p>
+                </div>
+                <div className="space-y-1 sm:pr-56">
+                  {POST_LINES.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {bootPhase === 'manager' ? (
+              <div className="space-y-1">
+                <p>CHAMBER BOOT MANAGER</p>
+                <p>ChamberOS v0.2 (build 0206.314)</p>
+                <p>Default: RESIDENT</p>
+                <p>Booting in: {managerCountdown}...</p>
+              </div>
+            ) : null}
+
+            {bootPhase === 'loader' ? (
+              <div className="space-y-4">
+                <div className="flex justify-center">
+                  <Image src="/chamber-star.svg" alt="Chamber Star loader mark" width={220} height={78} className="h-auto w-[220px] opacity-75" />
+                </div>
+                <div className="space-y-1">
+                  {LOADER_LINES.slice(0, loaderVisibleCount).map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {bootPhase === 'handoff' ? (
+              <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+                <span className="h-7 w-7 animate-spin rounded-full border-2 border-border border-t-text" />
+                <p className="animate-pulse tracking-[0.08em] text-[#e7e7e7]">DESKTOP_APPEARS</p>
               </div>
             ) : null}
           </div>
 
-          <div className="space-y-3">
-            <div className="h-[2px] overflow-hidden rounded bg-white/12">
-              <div className="h-full bg-white/75 transition-[width] duration-150 ease-linear" style={{ width: `${Math.round(totalProgress * 100)}%` }} />
+          <div className="pointer-events-none fixed inset-x-5 bottom-6 sm:inset-x-6">
+            <div className="mx-auto max-w-[980px]">
+              <div className="h-[2px] w-full overflow-hidden rounded bg-border/80">
+                <div className="h-full bg-text transition-[width] duration-75 ease-linear" style={{ width: `${Math.round(bootProgress * 100)}%` }} />
+              </div>
             </div>
-            <p className="font-mono text-[11px] text-[#a5a49f]">boot sequence in progress</p>
           </div>
         </section>
       </main>
@@ -1150,611 +767,241 @@ export default function BootPage() {
 
   if (systemStage === 'login') {
     return (
-      <main className="relative min-h-dvh overflow-hidden bg-[#060608] text-[#ecebe5]">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-45"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 18% 16%, rgba(255,255,255,0.08), transparent 40%), radial-gradient(circle at 78% 76%, rgba(255,255,255,0.07), transparent 43%)'
-          }}
-        />
-
-        <section className="relative mx-auto flex min-h-dvh w-full max-w-[1080px] items-center justify-center px-4 py-8 sm:px-6">
-          <div className="w-full max-w-[540px] rounded-[14px] border border-white/10 bg-[#0f1012]/90 p-4 backdrop-blur-[2px] sm:p-6">
-            <header className="text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-[#141518] font-mono text-xl text-[#f2f1ea]">
+      <main className="relative min-h-dvh overflow-hidden bg-[#070708] text-text">
+        <section className="absolute inset-0 flex items-center justify-center p-4">
+          <div className="w-full max-w-[560px] rounded-[12px] border border-border bg-[#0d0d0f] p-4 sm:p-5">
+            <div className="flex items-center gap-3 border-b border-border pb-4">
+              <span
+                className={cn(
+                  'inline-flex h-12 w-12 items-center justify-center rounded-full border border-border text-sm font-medium',
+                  selectedAccount.status === 'banned' ? 'text-[#ff5f57]' : 'text-text'
+                )}
+              >
                 {selectedAccount.id.slice(0, 2).toUpperCase()}
+              </span>
+              <div>
+                <p className="text-xl font-medium text-text">{selectedAccount.id}</p>
+                <p className="text-xs uppercase tracking-[0.08em] text-muted">{selectedAccount.summary}</p>
               </div>
-              <h1 className="mt-3 text-2xl font-medium text-[#f2f1ea]">{selectedAccount.id}</h1>
-              <p className="mt-1 text-sm text-[#a4a29a]">{selectedAccount.summary}</p>
-            </header>
+            </div>
 
-            <div className="mt-5 rounded-[10px] border border-white/10 bg-black/25 p-4">
-              {selectedAccount.id === 'Knight' ? (
-                <div className="space-y-3">
-                  <Button type="button" onClick={loginAsKnight} className="w-full font-mono">
+            <div className="space-y-3 py-4">
+              {selectedAccount.status === 'available' ? (
+                <>
+                  <Button type="button" className="w-full" onClick={setKnightSession}>
                     Log In
                   </Button>
-                  <p className="text-center text-xs uppercase tracking-[0.08em] text-[#9d9b93]">visitor access</p>
-                </div>
+                  <p className="text-xs text-muted">visitor access</p>
+                </>
               ) : null}
 
               {selectedAccount.status === 'locked' ? (
-                <form
-                  className="space-y-3"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    triggerLockedFailure();
-                  }}
-                >
-                  <Input
+                <>
+                  <input
                     type="password"
                     value={loginPassword}
                     onChange={(event) => setLoginPassword(event.target.value)}
-                    placeholder="password"
-                    aria-label={`${selectedAccount.id} password`}
-                    className="font-mono text-sm"
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleLockedAttempt();
+                      }
+                    }}
+                    placeholder="Password"
+                    className="h-11 w-full rounded-md border border-border bg-black/30 px-3 text-sm text-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                   />
-                  <Button type="submit" variant="secondary" className="w-full font-mono">
+                  <Button type="button" className="w-full" onClick={handleLockedAttempt}>
                     Unlock
                   </Button>
-                  <p className="min-h-5 text-xs text-[#d9d8d1]">{loginError || 'Locked profile.'}</p>
-                </form>
+                  <p className="min-h-5 text-xs text-[#ff7f7f]">{loginError}</p>
+                </>
               ) : null}
 
               {selectedAccount.status === 'banned' ? (
-                <p className="rounded-md border border-[#ff5f57]/45 bg-[#ff5f57]/8 px-3 py-2 text-center font-mono text-xs uppercase tracking-[0.08em] text-[#f5d6d4]">
+                <p className="rounded-md border border-[#ff5f57]/55 bg-[#ff5f57]/10 px-3 py-2 text-sm text-[#ff9d9d]">
                   ACCOUNT DISABLED (BANNED)
                 </p>
               ) : null}
             </div>
 
-            <div className="mt-4 space-y-2">
-              {otherAccounts.map((account) => (
-                <button
-                  key={account.id}
-                  type="button"
-                  onClick={() => selectAccount(account.id)}
-                  className="flex min-h-11 w-full items-center justify-between rounded-md border border-white/10 bg-black/20 px-3 text-left transition-colors duration-ui ease-calm hover:border-white/30 hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                >
-                  <span className="text-sm text-[#eeede7]">{account.id}</span>
-                  <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.1em] text-[#a4a29a]">
-                    <span className={cn('h-2 w-2 rounded-full', statusDotClass(account.status))} />
-                    {account.status}
-                  </span>
-                </button>
-              ))}
+            <div className="border-t border-border pt-4">
+              <p className="mb-3 text-xs uppercase tracking-[0.09em] text-muted">Profiles</p>
+              <div className="space-y-1.5">
+                {LOGIN_ACCOUNTS.map((account) => (
+                  <button
+                    key={account.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedAccountId(account.id);
+                      setLoginPassword('');
+                      setLoginError(account.status === 'banned' ? 'ACCOUNT DISABLED (BANNED)' : null);
+                    }}
+                    className={cn(
+                      'flex min-h-11 w-full items-center justify-between rounded-md px-3 text-left text-sm transition-colors duration-ui ease-calm',
+                      selectedAccountId === account.id ? 'bg-white/[0.08] text-text' : 'text-muted hover:bg-white/[0.05] hover:text-text'
+                    )}
+                  >
+                    <span>{account.id}</span>
+                    <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.08em]">
+                      <span className={cn('h-2 w-2 rounded-full', statusDotClass(account.status))} />
+                      {account.status}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <p className="mt-4 text-center font-mono text-[11px] text-[#8b8982]">{loginFooterNote}</p>
+            <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-4">
+              <Button type="button" variant="ghost" size="sm" onClick={restartFromLogin}>
+                Restart
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setLoginPassword('')}>
+                Shut down
+              </Button>
+            </div>
           </div>
         </section>
-
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
-          <div className="pointer-events-auto mx-auto flex w-full max-w-[1080px] justify-end gap-2 text-[11px]">
-            <button
-              type="button"
-              onClick={restartSystem}
-              className="inline-flex min-h-9 items-center rounded-md border border-white/10 px-3 text-[#b0aea7] transition-colors duration-ui ease-calm hover:border-white/30 hover:text-[#f1f0ea] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
-              Restart
-            </button>
-            <button
-              type="button"
-              onClick={shutDownSystem}
-              className="inline-flex min-h-9 items-center rounded-md border border-white/10 px-3 text-[#8e8b84] transition-colors duration-ui ease-calm hover:border-white/30 hover:text-[#dedcd4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
-              Shut down
-            </button>
-          </div>
-        </div>
       </main>
     );
   }
 
   return (
-    <main className="relative min-h-dvh bg-bg text-text">
-      <header className="fixed inset-x-0 top-0 z-20 h-[calc(2.75rem+env(safe-area-inset-top))] border-b border-border bg-[#09090b]/95 pt-[env(safe-area-inset-top)] backdrop-blur-[1px]">
-        <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between gap-3 px-2 sm:px-4">
-          <div className="flex min-w-0 items-center gap-3 sm:gap-6">
-            <span className="hidden items-center gap-[7px] sm:flex" aria-hidden="true">
-              <span className="h-[12px] w-[12px] rounded-full bg-[#ff5f57]" />
-              <span className="h-[12px] w-[12px] rounded-full bg-[#febc2e]" />
-              <span className="h-[12px] w-[12px] rounded-full bg-[#28c840]" />
-            </span>
+    <main className="min-h-dvh overflow-hidden bg-bg text-text">
+      <TopBar windows={windows} focusedWindowId={focusedWindowId} onAction={handleTopBarAction} />
 
-            <p className="text-lg font-medium text-text">Finder</p>
+      <section className="relative h-[calc(100dvh-2.5rem)] pt-10">
+        <div className="absolute inset-0 bg-[#0b0b0c]" />
 
-            <nav aria-label="Desktop menu" className="flex items-center gap-1 overflow-x-auto">
-              {MENU_ITEMS.map((item) => (
+        <div ref={workspaceRef} className="relative h-full w-full px-3 pb-20 pt-3 sm:px-4">
+          {isMobile ? (
+            <div className="pointer-events-auto mb-3 grid max-w-[560px] grid-cols-2 gap-2">
+              {DESKTOP_SHORTCUTS.map((shortcut) => (
                 <button
-                  key={item}
+                  key={shortcut.id}
                   type="button"
-                  onClick={() => handleMenuClick(item)}
-                  className="inline-flex min-h-11 items-center rounded-md px-2 text-sm text-muted transition-colors duration-ui ease-calm hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  onClick={() => {
+                    setSelectedShortcutId(shortcut.id);
+                    openWindowForApp(shortcut.appId);
+                  }}
+                  className={cn(
+                    'group min-h-[96px] rounded-md bg-transparent px-3 py-2 text-left transition-colors duration-ui ease-calm',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                    selectedShortcutId === shortcut.id ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
+                  )}
+                  aria-label={`${shortcut.label}. ${shortcut.hint}`}
                 >
-                  {item}
+                  <ShortcutGlyph iconSrc={shortcut.iconSrc} label={shortcut.label} />
+                  <span className="mt-2 block text-sm leading-tight text-text">{shortcut.label}</span>
+                  <span className="mt-1 block text-xs text-muted">{shortcut.hint}</span>
                 </button>
               ))}
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <p className="hidden truncate text-xs text-muted lg:block">{menuHint}</p>
-            <span className="hidden rounded-md border border-border bg-black/20 px-2 py-1 text-[11px] text-muted sm:inline-flex">
-              Knight
-            </span>
-            <Button type="button" size="sm" variant="ghost" onClick={logoutToLogin} className="font-mono text-xs">
-              Log Out
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <section className="relative min-h-dvh overflow-hidden px-4 pb-[calc(4rem+env(safe-area-inset-bottom))] pt-[calc(3.5rem+env(safe-area-inset-top))] sm:px-7 sm:pt-[calc(4rem+env(safe-area-inset-top))]">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-40"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 25% 15%, rgba(255,255,255,0.08), transparent 38%), radial-gradient(circle at 78% 72%, rgba(255,255,255,0.07), transparent 36%), linear-gradient(150deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 26%, rgba(255,255,255,0.03) 49%, rgba(255,255,255,0) 72%)'
-          }}
-        />
-
-        <div
-          ref={desktopRef}
-          className={cn(
-            'relative mx-auto h-[calc(100dvh-118px)] max-w-[1600px]',
-            isMobile ? 'overflow-y-auto overscroll-y-contain pb-4' : ''
-          )}
-          onPointerDown={handleDesktopPointerDown}
-          onPointerMove={handleDesktopPointerMove}
-          onPointerUp={handleDesktopPointerUp}
-          aria-label="Second Life desktop"
-        >
-          {isMobile ? (
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              {visibleIconIds.map((id) => {
-                const item = DESKTOP_ITEMS[id];
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => openWindow(item.window)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        openWindow(item.window);
-                      }
-                    }}
-                    className={cn(
-                      'group min-h-[120px] rounded-md border border-border bg-black/20 p-3 text-left transition-colors duration-ui ease-calm',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                      'hover:border-accent/70 hover:bg-white/[0.03]'
-                    )}
-                    aria-label={`${item.label}. ${item.hint}`}
-                  >
-                    <DesktopGlyph item={item} />
-                    <span className="mt-2 block text-base leading-tight text-text">{item.label}</span>
-                    <span className="mt-1 block text-xs text-muted">{item.hint}</span>
-                  </button>
-                );
-              })}
             </div>
           ) : (
-            <>
-              {visibleIconIds.map((id) => {
-                const item = DESKTOP_ITEMS[id];
-                const position = iconPositions[id];
-                const selected = selectedIcons.includes(id);
+            <div className="pointer-events-none absolute inset-0">
+              <div className="pointer-events-auto relative h-full w-full">
+                {DESKTOP_SHORTCUTS.map((shortcut) => {
+                  const point = shortcutPositions[shortcut.id] ?? buildInitialShortcutPositions(workspace.width)[shortcut.id];
 
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    style={{
-                      left: position.x,
-                      top: position.y,
-                      width: ICON_WIDTH
-                    }}
-                    onPointerDown={(event) => handleIconPointerDown(event, id)}
-                    onPointerMove={(event) => handleIconPointerMove(event, id)}
-                    onPointerUp={(event) => handleIconPointerUp(event, id)}
-                    onDoubleClick={() => openWindow(item.window)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
+                  return (
+                    <button
+                      key={shortcut.id}
+                      type="button"
+                      style={{ left: point.x, top: point.y, width: SHORTCUT_CARD_WIDTH }}
+                      onClick={() => {
+                        if (blockedShortcutOpenId === shortcut.id) {
+                          setBlockedShortcutOpenId(null);
+                          return;
+                        }
+                        setSelectedShortcutId(shortcut.id);
+                        openWindowForApp(shortcut.appId);
+                      }}
+                      onPointerDown={(event) => {
+                        const rect = workspaceRef.current?.getBoundingClientRect();
+                        if (!rect) {
+                          return;
+                        }
+
                         event.preventDefault();
-                        openWindow(item.window);
-                      }
-                    }}
-                    className={cn(
-                      'group absolute flex min-h-11 flex-col items-start gap-2 rounded-md p-2 text-left transition-colors duration-ui ease-calm',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                      selected ? 'bg-white/[0.07]' : 'hover:bg-white/[0.03]'
-                    )}
-                    aria-label={`${item.label}. ${item.hint}`}
-                  >
-                    <DesktopGlyph item={item} />
-
-                    <span className="text-[19px] leading-none text-muted transition-colors duration-ui ease-calm group-hover:text-text sm:text-[22px]">
-                      {item.label}
-                    </span>
-
-                    <span className="hidden pt-1 text-xs text-muted md:block">{item.hint}</span>
-                  </button>
-                );
-              })}
-
-              {selectionRect ? (
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute border border-accent/70 bg-accent/10"
-                  style={{
-                    left: selectionRect.x,
-                    top: selectionRect.y,
-                    width: selectionRect.width,
-                    height: selectionRect.height
-                  }}
-                />
-              ) : null}
-            </>
+                        setSelectedShortcutId(shortcut.id);
+                        setDragShortcut({
+                          id: shortcut.id,
+                          offsetX: event.clientX - rect.left - point.x,
+                          offsetY: event.clientY - rect.top - point.y,
+                          moved: false
+                        });
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          openWindowForApp(shortcut.appId);
+                        }
+                      }}
+                      className={cn(
+                        'group absolute min-h-[96px] select-none rounded-md bg-transparent px-3 py-2 text-left transition-colors duration-ui ease-calm',
+                        'cursor-grab active:cursor-grabbing',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                        selectedShortcutId === shortcut.id ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
+                      )}
+                      aria-label={`${shortcut.label}. ${shortcut.hint}`}
+                    >
+                      <ShortcutGlyph iconSrc={shortcut.iconSrc} label={shortcut.label} />
+                      <span className="mt-2 block text-sm leading-tight text-text">{shortcut.label}</span>
+                      <span className="mt-1 block text-xs text-muted">{shortcut.hint}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
-          {openWindows.map((id) => (
-            <FinderWindow
-              key={id}
-              id={id}
-              mobile={isMobile}
-              expanded={expandedWindows.includes(id)}
-              layout={windowLayouts[id]}
-              desktopRect={desktopRect}
-              onClose={() => closeWindow(id)}
-              onMinimize={() => minimizeWindow(id)}
-              onToggleExpand={() => toggleExpandWindow(id)}
-              onBringToFront={() => bringWindowToFront(id)}
-              onHeaderPointerDown={(event) => {
-                if (isMobile || !desktopRef.current) {
-                  return;
-                }
-
-                if (expandedWindows.includes(id)) {
-                  return;
-                }
-
-                const workspaceRect = desktopRef.current.getBoundingClientRect();
-                const layout = windowLayouts[id];
-
-                setDragWindow({
-                  id,
-                  offsetX: event.clientX - workspaceRect.left - layout.x,
-                  offsetY: event.clientY - workspaceRect.top - layout.y
-                });
-                bringWindowToFront(id);
-              }}
-            >
-              {id === 'listen' ? (
-                <>
-                  <div className="overflow-hidden rounded-md border border-border">
-                    <ListRow
-                      title="Guided Listen"
-                      detail="Short lead-ins before first play. Quiet pacing between tracks."
-                      status="recommended"
-                      action={
-                        <button
-                          type="button"
-                          onClick={() => setListeningMode('guided')}
-                          className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                        >
-                          Open
-                        </button>
-                      }
-                    />
-                    <ListRow
-                      title="Direct Listen"
-                      detail="Immediate playback. No lead-ins."
-                      status="instant"
-                      action={
-                        <button
-                          type="button"
-                          onClick={() => setListeningMode('direct')}
-                          className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                        >
-                          Open
-                        </button>
-                      }
-                    />
-                  </div>
-                  <p className="pt-3 text-sm text-muted">Both paths are valid. Guided is only a pacing layer.</p>
-                </>
-              ) : null}
-
-              {id === 'quest' ? (
-                <div className="overflow-hidden rounded-md border border-border bg-black/20">
-                  <iframe
-                    src="/chamber-text-quest?embedded=1&ui=91"
-                    title="Chamber Text Quest"
-                    loading="lazy"
-                    className="h-[62dvh] min-h-[320px] w-full bg-black sm:min-h-[500px]"
-                  />
-                </div>
-              ) : null}
-
-              {id === 'buy' ? (
-                <div className="overflow-hidden rounded-md border border-border">
-                  <ListRow
-                    title="Spotify"
-                    detail="Stream release"
-                    status="external"
-                    action={
-                      <a
-                        href={accessLinks.stream.spotify}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                      >
-                        Open
-                      </a>
-                    }
-                  />
-                  <ListRow
-                    title="SoundCloud"
-                    detail="Stream release"
-                    status="external"
-                    action={
-                      <a
-                        href={accessLinks.stream.soundcloud}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                      >
-                        Open
-                      </a>
-                    }
-                  />
-                  <ListRow
-                    title="Apple Music"
-                    detail="Stream release"
-                    status="external"
-                    action={
-                      <a
-                        href={accessLinks.stream.appleMusic}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                      >
-                        Open
-                      </a>
-                    }
-                  />
-                  <ListRow
-                    title="Untitled"
-                    detail="Stream release"
-                    status="external"
-                    action={
-                      <a
-                        href={accessLinks.stream.untitled}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                      >
-                        Open
-                      </a>
-                    }
-                  />
-                  <ListRow
-                    title="Bandcamp"
-                    detail="Support the release"
-                    status="support"
-                    action={
-                      <a
-                        href={accessLinks.support.bandcamp}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                      >
-                        Open
-                      </a>
-                    }
-                  />
-                </div>
-              ) : null}
-
-              {id === 'steal' ? (
-                <>
-                  <div className="overflow-hidden rounded-md border border-border">
-                    <ListRow
-                      title="Free Download Gate"
-                      detail="Newsletter gate to free release files."
-                      status="official"
-                      action={
-                        <button
-                          type="button"
-                          onClick={() => router.push('/download')}
-                          className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                        >
-                          Open
-                        </button>
-                      }
-                    />
-                    <ListRow
-                      title="MP3 Direct"
-                      detail="Placeholder mirror endpoint."
-                      status="placeholder"
-                      action={
-                        <a
-                          href={downloadConfig.mp3Url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                        >
-                          Open
-                        </a>
-                      }
-                    />
-                    <ListRow
-                      title="WAV Direct"
-                      detail="Placeholder mirror endpoint."
-                      status="placeholder"
-                      action={
-                        <a
-                          href={downloadConfig.wavUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                        >
-                          Open
-                        </a>
-                      }
-                    />
-                    <ListRow
-                      title="Soulseek room"
-                      detail="Community room mirror."
-                      status="community"
-                      action={
-                        <a
-                          href={stealLinks.soulseekRoomUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-muted transition-colors duration-ui ease-calm hover:border-accent hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                        >
-                          Open
-                        </a>
-                      }
-                    />
-                    <ListRow
-                      title="Torrent magnet"
-                      detail="Community archive link."
-                      status="community"
-                      action={
-                        <a
-                          href={stealLinks.magnetUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-muted transition-colors duration-ui ease-calm hover:border-accent hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                        >
-                          Open
-                        </a>
-                      }
-                    />
-                  </div>
-                  <p className="pt-3 text-sm text-muted">If you can support the release, use Buy. If not, use the free gate.</p>
-                </>
-              ) : null}
-
-              {id === 'help' ? (
-                <pre className="overflow-x-auto rounded-md border border-border bg-black/25 p-4 text-sm leading-6 text-muted">
-                  {HELP_TEXT}
-                </pre>
-              ) : null}
-
-              {id === 'lore' ? (
-                <pre className="overflow-x-auto rounded-md border border-border bg-black/25 p-4 text-sm leading-6 text-muted">
-                  {LORE_TEXT}
-                </pre>
-              ) : null}
-
-              {id === 'trace' ? (
-                <div className="space-y-4">
-                  <pre className="overflow-x-auto rounded-md border border-border bg-black/25 p-4 text-sm leading-6 text-muted">
-                    {TRACE_TEXT}
-                  </pre>
-
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={unlockKey}
-                      className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    >
-                      Run decode
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSystemLine('trace scan complete')}
-                      className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-muted transition-colors duration-ui ease-calm hover:border-accent hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    >
-                      Scan
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {id === 'ghost' ? (
-                <div className="space-y-4">
-                  <pre className="overflow-x-auto rounded-md border border-border bg-black/25 p-4 text-sm leading-6 text-muted">
-                    {`ghost_cache/
-
-cache.bin ........ sealed
-manifest.txt ..... partial
-trace.mount ....... available`}
-                  </pre>
-
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!traceUnlocked) {
-                          setTraceUnlocked(true);
-                        }
-                        setSystemLine('trace.route mounted from Ghost Cache');
-                        openWindow('trace');
-                      }}
-                      className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    >
-                      Mount trace
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSystemLine('cache.bin remains sealed')}
-                      className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-muted transition-colors duration-ui ease-calm hover:border-accent hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    >
-                      Inspect cache.bin
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {id === 'key' ? (
-                <div className="space-y-4">
-                  <pre className="overflow-x-auto rounded-md border border-border bg-black/25 p-4 text-sm leading-6 text-muted">
-                    {KEY_TEXT}
-                  </pre>
-
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => router.push('/appendix')}
-                      className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    >
-                      Open Appendix
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => router.push('/chapters')}
-                      className="inline-flex min-h-11 items-center rounded-md border border-border px-4 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    >
-                      Return to listening
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-            </FinderWindow>
-          ))}
+          <WindowManager
+            windows={windows}
+            focusedWindowId={focusedWindowId}
+            uiScale={uiScale}
+            workspaceSize={workspace}
+            onOpenWindow={openWindowForApp}
+            onFocusWindow={focusById}
+            onCloseWindow={closeById}
+            onMinimiseWindow={minimiseById}
+            onWindowDragStart={startWindowDrag}
+          />
         </div>
+
+        <footer className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-[#0a0a0b]/95 px-3 py-2">
+          <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-2">
+            <span className="text-xs uppercase tracking-[0.08em] text-muted">Minimised</span>
+            {minimisedWindows.length === 0 ? (
+              <span className="text-xs text-muted">none</span>
+            ) : (
+              minimisedWindows.map((window) => (
+                <Button
+                  key={window.id}
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setWindows((current) => focusWindow(restoreWindow(current, window.id), window.id));
+                    setFocusedWindowId(window.id);
+                  }}
+                >
+                  {window.title}
+                </Button>
+              ))
+            )}
+
+            <Button type="button" size="sm" variant="ghost" className="ml-auto" onClick={logoutToLogin}>
+              Log out
+            </Button>
+            <span className="text-xs text-muted">scale {Math.round(uiScale * 100)}%</span>
+          </div>
+        </footer>
       </section>
 
-      <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-[#09090b]/92 px-4 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 backdrop-blur-[1px]">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3">
-          <p className="text-sm text-muted">{menuHint}</p>
-          <Link
-            href="/privacy"
-            className="inline-flex min-h-11 items-center rounded-md px-2 text-sm text-muted transition-colors duration-ui ease-calm hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          >
-            privacy
-          </Link>
+      {toast ? (
+        <div className="fixed right-4 top-12 z-[70] rounded-md border border-border bg-[#111113] px-3 py-2 text-sm text-text">
+          {toast}
         </div>
-      </footer>
-
+      ) : null}
     </main>
   );
 }
