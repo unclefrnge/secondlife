@@ -33,6 +33,7 @@ export function OSWindow({
   onDragStart,
   children
 }: OSWindowProps) {
+  const isListenWindow = window.appId === 'listen';
   const scaledWidth = Math.min(Math.round(window.width * uiScale), Math.max(320, workspaceSize.width - 12));
   const scaledHeight = Math.min(Math.round(window.height * uiScale), Math.max(260, workspaceSize.height - 12));
   const left = clamp(window.x, 4, Math.max(4, workspaceSize.width - scaledWidth - 4));
@@ -41,7 +42,10 @@ export function OSWindow({
   if (mobile) {
     return (
       <section
-        className={cn('pointer-events-auto overflow-hidden rounded-[10px] border bg-[#0d0d0f]', focused ? 'border-accent' : 'border-border')}
+        className={cn(
+          'pointer-events-auto flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border bg-[#0d0d0f]',
+          focused ? 'border-accent' : 'border-border'
+        )}
         onPointerDown={() => onFocus(window.id)}
       >
         <header className="flex items-center justify-between border-b border-border bg-black/35 px-3 py-2">
@@ -67,7 +71,7 @@ export function OSWindow({
             </Button>
           </div>
         </header>
-        <div className="max-h-[calc(100dvh-12.75rem)] overflow-y-auto p-3">{children}</div>
+        <div className={cn('min-h-0 flex-1 overflow-y-auto', isListenWindow ? 'p-0' : 'p-3')}>{children}</div>
       </section>
     );
   }
@@ -117,7 +121,7 @@ export function OSWindow({
         </div>
       </header>
 
-      <div className="h-[calc(100%-2.5rem)] overflow-auto p-3">{children}</div>
+      <div className={cn('h-[calc(100%-2.5rem)] overflow-auto', isListenWindow ? 'p-0' : 'p-3')}>{children}</div>
     </section>
   );
 }

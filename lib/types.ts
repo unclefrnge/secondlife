@@ -1,5 +1,3 @@
-export type ListeningMode = 'guided' | 'direct';
-
 export type LeadInType = 'breathing-ring' | 'align-dots';
 
 export interface TrackLeadIn {
@@ -12,6 +10,7 @@ export interface Track {
   id: string;
   order: number;
   title: string;
+  audioFile: string;
   embedUrl: string;
   leadIn: TrackLeadIn;
 }
@@ -22,13 +21,4 @@ export interface AppendixItem {
   artefactType: 'note' | 'patch' | 'image';
   content: string;
   imageUrl?: string;
-}
-
-export interface SecondLifeState {
-  mode: ListeningMode;
-  openedGuided: string[];
-  completedTracks: string[];
-  guidedCompleted: string[];
-  appendixUnlocked: boolean;
-  lastPlayedTrackId: string | null;
 }

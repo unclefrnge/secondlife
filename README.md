@@ -1,6 +1,6 @@
 # Second Life MVP
 
-Minimalist listening experience for the six-track release, with Guided and Direct modes.
+Minimalist listening experience for the six-track release with an embedded Winamp-style player in ChamberOS.
 Now includes **Chamber Text Quest**, a desktop shortcut parser game inside Chamber OS.
 
 ## Stack
@@ -18,18 +18,15 @@ Now includes **Chamber Text Quest**, a desktop shortcut parser game inside Chamb
 
 - `/` Boot and mode selection
 - `/chamber-text-quest` Chamber Text Quest (retro parser game)
-- `/chapters` Main listening experience with guided lead-ins and access modal
+- `/chapters` Legacy route; redirects to `/`
 - `/download` Newsletter-gated download flow (placeholder integration)
-- `/appendix` Locked extras, unlocked via guided completion
+- `/appendix` Legacy route; redirects to `/`
 - `/privacy` Plain-language email data disclosure
 
 ## Core Behavior
 
-- Guided mode shows SVG lead-ins on first open per track.
-- Direct mode starts playback immediately.
-- Progress persists via local storage when available.
-- Appendix unlocks after all six tracks are completed in Guided mode.
-- Interstitial pauses appear between guided chapters with a skip option.
+- Listen window opens a Winamp-style media player directly inside ChamberOS.
+- Legacy listening routes (`/chapters`, `/appendix`) now route users back to desktop (`/`).
 - Desktop includes a **Chamber Text Quest** shortcut with a dedicated launch window.
 - Desktop quest app runs in a popup window (`iframe`) so users remain inside the Chamber OS desktop.
 

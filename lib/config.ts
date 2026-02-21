@@ -1,5 +1,7 @@
 import type { AppendixItem, Track } from '@/lib/types';
 
+export const audioBaseUrl = 'https://pub-253937541e654a4584ad79958b1ed95e.r2.dev';
+
 export const project = {
   title: 'SECOND LIFE',
   subtitle: 'six chapters, recovered and released',
@@ -15,6 +17,7 @@ export const tracks: Track[] = [
     id: 'owe-me-nothing',
     order: 1,
     title: 'Owe Me Nothing',
+    audioFile: 'Owe Me Nothing.mp3',
     embedUrl: 'https://untitled.stream/library/project/second-life-01',
     leadIn: {
       type: 'breathing-ring',
@@ -25,6 +28,7 @@ export const tracks: Track[] = [
     id: 'let-there-be-ghosts',
     order: 2,
     title: 'Let There Be Ghosts (ft. Killian Black)',
+    audioFile: 'Let There Be Ghosts (feat. Killian Black).mp3',
     embedUrl: 'https://untitled.stream/library/project/second-life-02',
     leadIn: {
       type: 'align-dots',
@@ -36,6 +40,7 @@ export const tracks: Track[] = [
     id: 'forest-lullaby',
     order: 3,
     title: 'Forest Lullaby',
+    audioFile: 'Forest Lullaby.mp3',
     embedUrl: 'https://untitled.stream/library/project/second-life-03',
     leadIn: {
       type: 'breathing-ring',
@@ -46,6 +51,7 @@ export const tracks: Track[] = [
     id: 'same-body-different-spirit',
     order: 4,
     title: 'Same Body, Different Spirit',
+    audioFile: 'Same Body, Different Spirit.mp3',
     embedUrl: 'https://untitled.stream/library/project/second-life-04',
     leadIn: {
       type: 'align-dots',
@@ -57,6 +63,7 @@ export const tracks: Track[] = [
     id: 'healing',
     order: 5,
     title: 'Healing',
+    audioFile: 'Healing.mp3',
     embedUrl: 'https://untitled.stream/library/project/second-life-05',
     leadIn: {
       type: 'breathing-ring',
@@ -67,6 +74,7 @@ export const tracks: Track[] = [
     id: 'ethics-of-sampling',
     order: 6,
     title: 'Ethics of Sampling',
+    audioFile: 'Ethics of Sampling.mp3',
     embedUrl: 'https://untitled.stream/library/project/second-life-06',
     leadIn: {
       type: 'align-dots',

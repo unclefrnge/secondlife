@@ -133,9 +133,9 @@ const DESKTOP_SHORTCUTS: DesktopShortcut[] = [
   {
     id: 'listen',
     label: 'Listen To Second Life',
-    hint: 'guided + direct listening',
+    hint: 'track library',
     iconSrc: '/desktop-icons/listen-to-second-life.svg',
-    appId: 'listen'
+    appId: 'library'
   },
   {
     id: 'support',
@@ -264,6 +264,8 @@ export default function HomePage() {
   const [dragShortcut, setDragShortcut] = useState<DragShortcutState | null>(null);
   const [blockedShortcutOpenId, setBlockedShortcutOpenId] = useState<string | null>(null);
   const [dragWindow, setDragWindow] = useState<DragWindowState | null>(null);
+  const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
+  const [autoplayToken, setAutoplayToken] = useState(0);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -470,6 +472,36 @@ export default function HomePage() {
     (appId: AppId) => {
       setWindows((current) => {
         const nextWindow = createWindow(appId, current);
+        const clamped = isMobile
+          ? nextWindow
+          : {
+              ...nextWindow,
+              ...clampWindowPoint(nextWindow, { x: nextWindow.x, y: nextWindow.y }, workspace, uiScale)
+            };
+
+        setFocusedWindowId(clamped.id);
+        return [...current, clamped];
+      });
+    },
+    [isMobile, uiScale, workspace]
+  );
+
+  const playTrack = useCallback(
+    (trackId: string) => {
+      setSelectedTrackId(trackId);
+      setAutoplayToken((current) => current + 1);
+
+      setWindows((current) => {
+        const playerWindow = current.find((window) => window.appId === 'listen');
+
+        if (playerWindow) {
+          const restored = playerWindow.isMinimised ? restoreWindow(current, playerWindow.id) : current;
+          const focused = focusWindow(restored, playerWindow.id);
+          setFocusedWindowId(playerWindow.id);
+          return focused;
+        }
+
+        const nextWindow = createWindow('listen', current);
         const clamped = isMobile
           ? nextWindow
           : {
@@ -957,9 +989,12 @@ export default function HomePage() {
           <WindowManager
             windows={windows}
             focusedWindowId={focusedWindowId}
+            activeTrackId={selectedTrackId}
+            autoplayToken={autoplayToken}
             uiScale={uiScale}
             workspaceSize={workspace}
             onOpenWindow={openWindowForApp}
+            onPlayTrack={playTrack}
             onFocusWindow={focusById}
             onCloseWindow={closeById}
             onMinimiseWindow={minimiseById}

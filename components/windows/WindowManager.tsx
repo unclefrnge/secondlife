@@ -7,11 +7,14 @@ import { ChamberTextQuest } from '@/components/windows/apps/ChamberTextQuest';
 import { LoreIndex } from '@/components/windows/apps/LoreIndex';
 import { LoreMap } from '@/components/windows/apps/LoreMap';
 import { Notes } from '@/components/windows/apps/Notes';
+import { SecondLifeLibrary } from '@/components/windows/apps/SecondLifeLibrary';
+import { SecondLifeWinampPlayer } from '@/components/windows/apps/SecondLifeWinampPlayer';
 import { Settings } from '@/components/windows/apps/Settings';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { accessLinks, downloadConfig, stealLinks } from '@/lib/config';
+import { accessLinks, downloadConfig, stealLinks, tracks } from '@/lib/config';
 import { useIsMobile } from '@/lib/hooks/use-is-mobile';
+import type { Track } from '@/lib/types';
 import type { AppId, ChamberWindow } from '@/lib/windowStore';
 import { cn } from '@/lib/utils';
 import { OSWindow } from '@/components/windows/OSWindow';
@@ -19,9 +22,12 @@ import { OSWindow } from '@/components/windows/OSWindow';
 interface WindowManagerProps {
   windows: ChamberWindow[];
   focusedWindowId: string | null;
+  activeTrackId: string | null;
+  autoplayToken: number;
   uiScale: number;
   workspaceSize: { width: number; height: number };
   onOpenWindow: (appId: AppId) => void;
+  onPlayTrack: (trackId: string) => void;
   onFocusWindow: (windowId: string) => void;
   onCloseWindow: (windowId: string) => void;
   onMinimiseWindow: (windowId: string) => void;
@@ -31,7 +37,11 @@ interface WindowManagerProps {
 function renderApp(
   appId: AppId,
   onOpenModules: () => void,
-  onOpenCertification: () => void
+  onOpenCertification: () => void,
+  activeTrack: Track | null,
+  activeTrackId: string | null,
+  autoplayToken: number,
+  onPlayTrack: (trackId: string) => void
 ): ReactNode {
   if (appId === 'about') {
     return <AboutChamberOS onOpenModules={onOpenModules} onOpenCertification={onOpenCertification} />;
@@ -41,32 +51,12 @@ function renderApp(
     return <ChamberTextQuest />;
   }
 
-  if (appId === 'listen') {
-    return (
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-lg font-medium text-text">Listen to Second Life</h3>
-          <p className="text-sm text-muted">Choose your path.</p>
-        </div>
+  if (appId === 'library') {
+    return <SecondLifeLibrary activeTrackId={activeTrackId} onPlayTrack={onPlayTrack} />;
+  }
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <a
-            href="/chapters?mode=guided"
-            className="rounded-md border border-border bg-black/20 px-4 py-3 text-left transition-colors duration-ui ease-calm hover:border-accent"
-          >
-            <p className="text-sm font-medium text-text">Guided Listen</p>
-            <p className="mt-1 text-xs text-muted">short lead-ins, paced transitions</p>
-          </a>
-          <a
-            href="/chapters?mode=direct"
-            className="rounded-md border border-border bg-black/20 px-4 py-3 text-left transition-colors duration-ui ease-calm hover:border-accent"
-          >
-            <p className="text-sm font-medium text-text">Direct Listen</p>
-            <p className="mt-1 text-xs text-muted">play immediately</p>
-          </a>
-        </div>
-      </div>
-    );
+  if (appId === 'listen') {
+    return <SecondLifeWinampPlayer track={activeTrack} autoplayToken={autoplayToken} />;
   }
 
   if (appId === 'support') {
@@ -243,9 +233,12 @@ function renderApp(
 export function WindowManager({
   windows,
   focusedWindowId,
+  activeTrackId,
+  autoplayToken,
   uiScale,
   workspaceSize,
   onOpenWindow,
+  onPlayTrack,
   onFocusWindow,
   onCloseWindow,
   onMinimiseWindow,
@@ -254,15 +247,24 @@ export function WindowManager({
   const isMobile = useIsMobile();
   const [modulesOpen, setModulesOpen] = useState(false);
   const [certOpen, setCertOpen] = useState(false);
+  const activeTrack = useMemo(() => tracks.find((track) => track.id === activeTrackId) ?? null, [activeTrackId]);
 
   const visibleWindows = useMemo(
     () => windows.filter((window) => !window.isMinimised).sort((a, b) => a.zIndex - b.zIndex),
     [windows]
   );
+  const hasVisibleWindows = visibleWindows.length > 0;
 
   return (
     <>
-      <section className={cn('pointer-events-none h-full w-full', isMobile ? 'space-y-3 overflow-y-auto pb-2 pr-1' : 'relative')}>
+      <section
+        className={cn(
+          'w-full',
+          isMobile
+            ? cn('absolute inset-0 z-20 space-y-3 overflow-y-auto pb-2 pr-1', hasVisibleWindows ? 'pointer-events-auto' : 'pointer-events-none')
+            : 'pointer-events-none relative h-full'
+        )}
+      >
         {visibleWindows.map((window) => (
           <OSWindow
             key={window.id}
@@ -276,7 +278,15 @@ export function WindowManager({
             onMinimise={onMinimiseWindow}
             onDragStart={onWindowDragStart}
           >
-            {renderApp(window.appId, () => setModulesOpen(true), () => setCertOpen(true))}
+            {renderApp(
+              window.appId,
+              () => setModulesOpen(true),
+              () => setCertOpen(true),
+              activeTrack,
+              activeTrackId,
+              autoplayToken,
+              onPlayTrack
+            )}
           </OSWindow>
         ))}
       </section>

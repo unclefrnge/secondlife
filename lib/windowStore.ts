@@ -3,6 +3,7 @@ export const SIGIL_ID = 'CHMBR-13A-LOOP-077';
 export type AppId =
   | 'about'
   | 'text-quest'
+  | 'library'
   | 'listen'
   | 'support'
   | 'steal'
@@ -37,7 +38,8 @@ export interface AppWindowMeta {
 export const APP_META: Record<AppId, AppWindowMeta> = {
   about: { title: 'About ChamberOS', width: 460, height: 430 },
   'text-quest': { title: 'Chamber Text Quest', width: 920, height: 620 },
-  listen: { title: 'Second Life Player', width: 760, height: 460 },
+  library: { title: 'Second Life Library', width: 560, height: 420 },
+  listen: { title: 'Second Life Player', width: 300, height: 320 },
   support: { title: 'Support', width: 640, height: 420 },
   steal: { title: 'Steal', width: 640, height: 420 },
   'lore-map': { title: 'Lore Map', width: 720, height: 520 },

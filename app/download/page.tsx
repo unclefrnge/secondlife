@@ -96,7 +96,7 @@ export default function DownloadPage() {
           </div>
 
           <Link
-            href="/chapters"
+            href="/"
             className="inline-flex min-h-11 items-center rounded-md px-2 text-sm text-muted transition-colors duration-ui ease-calm hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             Return to listening
@@ -143,7 +143,7 @@ export default function DownloadPage() {
 
           <div className="flex flex-wrap gap-2">
             <Link
-              href="/chapters"
+              href="/"
               className="inline-flex min-h-11 items-center rounded-md px-2 text-sm text-muted transition-colors duration-ui ease-calm hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               Return to listening
