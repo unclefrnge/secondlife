@@ -2,33 +2,38 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
 import './globals.css';
-import { project, tracks } from '@/lib/config';
+import { frnge, siteMetadata } from '@/lib/config';
 
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'MusicAlbum',
-  name: project.title,
-  numTracks: tracks.length,
-  track: tracks.map((track, index) => ({
-    '@type': 'MusicRecording',
-    position: index + 1,
-    name: track.title
-  }))
+  '@type': 'Person',
+  name: siteMetadata.title,
+  description: siteMetadata.description,
+  url: siteMetadata.url,
+  jobTitle: ['Producer', 'DJ'],
+  memberOf: {
+    '@type': 'Organization',
+    name: 'Chamber Collective'
+  },
+  sameAs: [frnge.links.spotify, frnge.links.bandcamp, frnge.links.soundcloud, frnge.links.instagram, frnge.links.tiktok]
 };
 
 export const metadata: Metadata = {
-  title: project.title,
-  description: project.ogDescription,
-  metadataBase: new URL('https://second-life.example.com'),
+  title: siteMetadata.title,
+  description: siteMetadata.description,
+  metadataBase: new URL(siteMetadata.url),
   openGraph: {
-    title: project.title,
-    description: project.ogDescription,
+    type: 'website',
+    url: siteMetadata.url,
+    siteName: siteMetadata.title,
+    title: siteMetadata.title,
+    description: siteMetadata.description,
     images: ['/og-image.svg']
   },
   twitter: {
     card: 'summary_large_image',
-    title: project.title,
-    description: project.ogDescription,
+    title: siteMetadata.title,
+    description: siteMetadata.description,
     images: ['/og-image.svg']
   }
 };

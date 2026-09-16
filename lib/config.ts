@@ -2,6 +2,12 @@ import type { AppendixItem, Track } from '@/lib/types';
 
 export const audioBaseUrl = 'https://pub-253937541e654a4584ad79958b1ed95e.r2.dev';
 
+export const siteMetadata = {
+  title: 'FRNGE',
+  description: 'FRNGE — Cape Town producer, DJ and co-founder of Chamber Collective.',
+  url: 'https://frn.ge'
+} as const;
+
 export const project = {
   title: 'SECOND LIFE',
   subtitle: 'six chapters, recovered and released',
