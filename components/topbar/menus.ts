@@ -27,7 +27,12 @@ export interface MenuEntry {
 }
 
 export const systemMenuItems: MenuEntry[] = [
-  { id: 'system-about', label: 'About ChamberOS', action: { type: 'open-window', appId: 'about' } },
+  { id: 'system-about', label: 'FRNGE.TXT', action: { type: 'open-window', appId: 'about' } },
+  { id: 'system-releases', label: 'RELEASES/', action: { type: 'open-window', appId: 'library' } },
+  { id: 'system-listen', label: 'LISTEN.EXE', action: { type: 'open-window', appId: 'support' } },
+  { id: 'system-contact', label: 'CONTACT.MAIL', action: { type: 'open-window', appId: 'steal' } },
+  { id: 'system-chamber', label: 'CHAMBER/', action: { type: 'open-window', appId: 'lore-index' } },
+  { id: 'system-divider-primary', separator: true },
   { id: 'system-quest', label: 'Open Chamber Text Quest', action: { type: 'open-window', appId: 'text-quest' } },
   { id: 'system-map', label: 'Open Lore Map', action: { type: 'open-window', appId: 'lore-map' } },
   { id: 'system-divider-1', separator: true },

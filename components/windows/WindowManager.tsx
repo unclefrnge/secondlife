@@ -2,17 +2,15 @@
 
 import { type PointerEvent as ReactPointerEvent, type ReactNode, useMemo, useState } from 'react';
 
-import { AboutChamberOS } from '@/components/windows/apps/AboutChamberOS';
 import { ChamberTextQuest } from '@/components/windows/apps/ChamberTextQuest';
-import { LoreIndex } from '@/components/windows/apps/LoreIndex';
 import { LoreMap } from '@/components/windows/apps/LoreMap';
 import { Notes } from '@/components/windows/apps/Notes';
-import { SecondLifeLibrary } from '@/components/windows/apps/SecondLifeLibrary';
 import { SecondLifeWinampPlayer } from '@/components/windows/apps/SecondLifeWinampPlayer';
 import { Settings } from '@/components/windows/apps/Settings';
+import { ChamberLink, ContactMail, FrngeProfile, ListenDirectory, ReleaseDirectory } from '@/components/windows/apps/FrngeApps';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { accessLinks, downloadConfig, stealLinks, tracks } from '@/lib/config';
+import { tracks } from '@/lib/config';
 import { useIsMobile } from '@/lib/hooks/use-is-mobile';
 import type { Track } from '@/lib/types';
 import type { AppId, ChamberWindow } from '@/lib/windowStore';
@@ -36,15 +34,12 @@ interface WindowManagerProps {
 
 function renderApp(
   appId: AppId,
-  onOpenModules: () => void,
-  onOpenCertification: () => void,
   activeTrack: Track | null,
-  activeTrackId: string | null,
   autoplayToken: number,
   onPlayTrack: (trackId: string) => void
 ): ReactNode {
   if (appId === 'about') {
-    return <AboutChamberOS onOpenModules={onOpenModules} onOpenCertification={onOpenCertification} />;
+    return <FrngeProfile />;
   }
 
   if (appId === 'text-quest') {
@@ -52,7 +47,7 @@ function renderApp(
   }
 
   if (appId === 'library') {
-    return <SecondLifeLibrary activeTrackId={activeTrackId} onPlayTrack={onPlayTrack} />;
+    return <ReleaseDirectory />;
   }
 
   if (appId === 'listen') {
@@ -60,99 +55,11 @@ function renderApp(
   }
 
   if (appId === 'support') {
-    return (
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-lg font-medium text-text">Support</h3>
-          <p className="text-sm text-muted">Choose a platform.</p>
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <a
-            href={accessLinks.stream.spotify}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-md border border-border bg-black/20 px-3 py-2 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent"
-          >
-            Spotify
-          </a>
-          <a
-            href={accessLinks.stream.appleMusic}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-md border border-border bg-black/20 px-3 py-2 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent"
-          >
-            Apple Music
-          </a>
-          <a
-            href={accessLinks.stream.untitled}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-md border border-border bg-black/20 px-3 py-2 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent"
-          >
-            Untitled
-          </a>
-          <a
-            href={accessLinks.support.bandcamp}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-md border border-border bg-black/20 px-3 py-2 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent"
-          >
-            Bandcamp
-          </a>
-        </div>
-      </div>
-    );
+    return <ListenDirectory />;
   }
 
   if (appId === 'steal') {
-    return (
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-lg font-medium text-text">Steal</h3>
-          <p className="text-sm text-muted">Free routes.</p>
-        </div>
-        <div className="grid gap-2">
-          <a
-            href="/download"
-            className="rounded-md border border-border bg-black/20 px-3 py-2 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent"
-          >
-            Free download gate
-          </a>
-          <a
-            href={downloadConfig.mp3Url}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-md border border-border bg-black/20 px-3 py-2 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent"
-          >
-            MP3 mirror
-          </a>
-          <a
-            href={downloadConfig.wavUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-md border border-border bg-black/20 px-3 py-2 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent"
-          >
-            WAV mirror
-          </a>
-          <a
-            href={stealLinks.magnetUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-md border border-border bg-black/20 px-3 py-2 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent"
-          >
-            Torrent magnet
-          </a>
-          <a
-            href={stealLinks.soulseekRoomUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-md border border-border bg-black/20 px-3 py-2 text-sm text-text transition-colors duration-ui ease-calm hover:border-accent"
-          >
-            Soulseek room
-          </a>
-        </div>
-      </div>
-    );
+    return <ContactMail />;
   }
 
   if (appId === 'lore-map') {
@@ -160,7 +67,7 @@ function renderApp(
   }
 
   if (appId === 'lore-index') {
-    return <LoreIndex />;
+    return <ChamberLink />;
   }
 
   if (appId === 'settings') {
@@ -280,10 +187,7 @@ export function WindowManager({
           >
             {renderApp(
               window.appId,
-              () => setModulesOpen(true),
-              () => setCertOpen(true),
               activeTrack,
-              activeTrackId,
               autoplayToken,
               onPlayTrack
             )}

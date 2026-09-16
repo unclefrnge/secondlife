@@ -124,32 +124,39 @@ const LOCKED_ERROR_POOL = [
 
 const DESKTOP_SHORTCUTS: DesktopShortcut[] = [
   {
-    id: 'quest',
-    label: 'Chamber Quest',
-    hint: 'resident app',
+    id: 'frnge',
+    label: 'FRNGE.TXT',
+    hint: 'artist profile',
     iconSrc: '/desktop-icons/chamber-quest.svg',
-    appId: 'text-quest'
+    appId: 'about'
   },
   {
-    id: 'listen',
-    label: 'Listen To Second Life',
-    hint: 'track library',
+    id: 'releases',
+    label: 'RELEASES/',
+    hint: 'discography archive',
     iconSrc: '/desktop-icons/listen-to-second-life.svg',
     appId: 'library'
   },
   {
-    id: 'support',
-    label: 'Support',
-    hint: 'platform links',
+    id: 'listen',
+    label: 'LISTEN.EXE',
+    hint: 'external platforms',
     iconSrc: '/desktop-icons/support.svg',
     appId: 'support'
   },
   {
-    id: 'steal',
-    label: 'Steal',
-    hint: 'free mirror panel',
+    id: 'contact',
+    label: 'CONTACT.MAIL',
+    hint: 'booking and links',
     iconSrc: '/desktop-icons/steal.svg',
     appId: 'steal'
+  },
+  {
+    id: 'chamber',
+    label: 'CHAMBER/',
+    hint: 'collective portal',
+    iconSrc: '/desktop-icons/chamber-quest.svg',
+    appId: 'lore-index'
   }
 ];
 
@@ -161,10 +168,11 @@ function buildInitialShortcutPositions(width: number): Record<string, Point> {
   const right = Math.max(SHORTCUT_MARGIN, width - SHORTCUT_CARD_WIDTH - SHORTCUT_MARGIN);
 
   return {
-    quest: { x: SHORTCUT_MARGIN, y: SHORTCUT_MARGIN },
-    listen: { x: SHORTCUT_MARGIN, y: SHORTCUT_MARGIN + SHORTCUT_GRID_Y },
-    support: { x: right, y: SHORTCUT_MARGIN },
-    steal: { x: right, y: SHORTCUT_MARGIN + SHORTCUT_GRID_Y }
+    frnge: { x: SHORTCUT_MARGIN, y: SHORTCUT_MARGIN },
+    releases: { x: SHORTCUT_MARGIN, y: SHORTCUT_MARGIN + SHORTCUT_GRID_Y },
+    listen: { x: SHORTCUT_MARGIN, y: SHORTCUT_MARGIN + SHORTCUT_GRID_Y * 2 },
+    contact: { x: right, y: SHORTCUT_MARGIN },
+    chamber: { x: right, y: SHORTCUT_MARGIN + SHORTCUT_GRID_Y }
   };
 }
 

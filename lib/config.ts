@@ -12,6 +12,37 @@ export const project = {
   footerMicrocopy: 'Streaming, purchase, and free download available.'
 };
 
+export const frnge = {
+  email: 'contact@frn.ge',
+  links: {
+    spotify: 'https://open.spotify.com/artist/3mKDwqQ4AyrT3AQkiBqGHn',
+    bandcamp: 'https://frnge.bandcamp.com',
+    soundcloud: 'https://soundcloud.com/frngemusic',
+    website: 'https://frn.ge',
+    instagram: 'https://instagram.com/unclefrnge/',
+    tiktok: 'https://www.tiktok.com/@unclefrnge',
+    chamber: 'https://chambercollective.net'
+  },
+  releases: [
+    'TKZee - Mambotjie (FRNGE Vault Edit)',
+    'BABii - Vyper Pro (FRNGE Edit)',
+    'Let There Be Ghosts (feat. Killian Black)',
+    'Scratcha DVA, Trim - Yardman (FRNGE Edit)',
+    'Shearwater - Xenarthran (FRNGE Edit)',
+    'Idles - War (FRNGE Edit)',
+    'Oklou - galore (FRNGE ukg edit)',
+    'FKA twigs - tears in the club (FRNGE Edit)',
+    'Baauer - Let Me Love U (FRNGE Remix)',
+    'Still Hertz II — FRNGE & kem.inc',
+    'Black 02',
+    'faking a smile for the snake',
+    'YTMP3 Edits',
+    'group chat — FRNGE, Tzara & trxstxssx',
+    'PinkPanthress - Pain (FRNGE Edit)',
+    'Takalani Sesame Seed'
+  ]
+} as const;
+
 export const tracks: Track[] = [
   {
     id: 'owe-me-nothing',

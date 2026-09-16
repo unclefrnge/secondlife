@@ -36,14 +36,14 @@ export interface AppWindowMeta {
 }
 
 export const APP_META: Record<AppId, AppWindowMeta> = {
-  about: { title: 'About ChamberOS', width: 460, height: 430 },
+  about: { title: 'FRNGE.TXT', width: 540, height: 430 },
   'text-quest': { title: 'Chamber Text Quest', width: 920, height: 620 },
-  library: { title: 'Second Life Library', width: 560, height: 420 },
+  library: { title: 'RELEASES/', width: 600, height: 560 },
   listen: { title: 'Second Life Player', width: 300, height: 320 },
-  support: { title: 'Support', width: 640, height: 420 },
-  steal: { title: 'Steal', width: 640, height: 420 },
+  support: { title: 'LISTEN.EXE', width: 460, height: 360 },
+  steal: { title: 'CONTACT.MAIL', width: 620, height: 500 },
   'lore-map': { title: 'Lore Map', width: 720, height: 520 },
-  'lore-index': { title: 'Lore Index', width: 540, height: 460 },
+  'lore-index': { title: 'CHAMBER/', width: 400, height: 270 },
   settings: { title: 'Settings', width: 520, height: 440 },
   notes: { title: 'Notes', width: 520, height: 420 },
   recents: { title: 'Recents', width: 520, height: 400 },
