@@ -65,7 +65,7 @@ interface LoginAccount {
 }
 
 const SHORTCUT_CARD_WIDTH = 172;
-const SHORTCUT_CARD_HEIGHT = 104;
+const SHORTCUT_CARD_HEIGHT = 112;
 const SHORTCUT_GRID_X = 188;
 const SHORTCUT_GRID_Y = 118;
 const SHORTCUT_MARGIN = 12;
@@ -125,37 +125,37 @@ const LOCKED_ERROR_POOL = [
 const DESKTOP_SHORTCUTS: DesktopShortcut[] = [
   {
     id: 'frnge',
-    label: 'FRNGE.TXT',
+    label: 'who is frnge',
     hint: 'artist profile',
-    iconSrc: '/desktop-icons/chamber-quest.svg',
+    iconSrc: '/desktop-icons/who-is-frnge.png',
     appId: 'about'
   },
   {
     id: 'releases',
-    label: 'RELEASES/',
+    label: 'discography',
     hint: 'discography archive',
-    iconSrc: '/desktop-icons/listen-to-second-life.svg',
+    iconSrc: '/desktop-icons/discography.png',
     appId: 'library'
   },
   {
     id: 'listen',
-    label: 'LISTEN.EXE',
+    label: 'where 2 stream',
     hint: 'external platforms',
-    iconSrc: '/desktop-icons/support.svg',
+    iconSrc: '/desktop-icons/where-2-stream.png',
     appId: 'support'
   },
   {
     id: 'contact',
-    label: 'CONTACT.MAIL',
+    label: 'contact',
     hint: 'booking and links',
-    iconSrc: '/desktop-icons/steal.svg',
+    iconSrc: '/desktop-icons/contact.png',
     appId: 'steal'
   },
   {
     id: 'chamber',
-    label: 'CHAMBER/',
+    label: 'chamber collective',
     hint: 'collective portal',
-    iconSrc: '/desktop-icons/chamber-quest.svg',
+    iconSrc: '/desktop-icons/chamber-collective.png',
     appId: 'lore-index'
   }
 ];
@@ -242,11 +242,10 @@ function statusDotClass(status: AccountStatus): string {
   return 'bg-[#febc2e]';
 }
 
-function ShortcutGlyph({ iconSrc, label }: { iconSrc: string; label: string }) {
+function ShortcutGlyph({ iconSrc }: { iconSrc: string }) {
   return (
-    <span aria-hidden="true" className="relative inline-flex h-14 w-14 items-center justify-center overflow-hidden rounded-[6px]">
-      <Image src={iconSrc} alt="" width={36} height={36} className="h-9 w-9 object-contain" />
-      <span className="sr-only">{label}</span>
+    <span aria-hidden="true" className="flex h-12 w-12 items-center justify-center">
+      <Image src={iconSrc} alt="" width={48} height={48} unoptimized className="h-12 w-12 object-contain" />
     </span>
   );
 }
@@ -954,15 +953,15 @@ export default function HomePage() {
                     openWindowForApp(shortcut.appId);
                   }}
                   className={cn(
-                    'group min-h-[96px] rounded-md bg-transparent px-3 py-2 text-left transition-colors duration-ui ease-calm',
+                    'group min-h-[96px] min-w-0 rounded-md bg-transparent px-3 py-2 text-left transition-colors duration-ui ease-calm',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                     selectedShortcutId === shortcut.id ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
                   )}
                   aria-label={`${shortcut.label}. ${shortcut.hint}`}
                 >
-                  <ShortcutGlyph iconSrc={shortcut.iconSrc} label={shortcut.label} />
-                  <span className="mt-2 block text-sm leading-tight text-text">{shortcut.label}</span>
-                  <span className="mt-1 block text-xs text-muted">{shortcut.hint}</span>
+                  <ShortcutGlyph iconSrc={shortcut.iconSrc} />
+                  <span className="mt-2 block break-words text-sm leading-tight text-text">{shortcut.label}</span>
+                  <span className="mt-1 block break-words text-xs text-muted">{shortcut.hint}</span>
                 </button>
               ))}
             </div>
@@ -976,7 +975,7 @@ export default function HomePage() {
                     <button
                       key={shortcut.id}
                       type="button"
-                      style={{ left: point.x, top: point.y, width: SHORTCUT_CARD_WIDTH }}
+                      style={{ left: point.x, top: point.y, width: SHORTCUT_CARD_WIDTH, minHeight: SHORTCUT_CARD_HEIGHT }}
                       onClick={() => {
                         if (blockedShortcutOpenId === shortcut.id) {
                           setBlockedShortcutOpenId(null);
@@ -1014,9 +1013,9 @@ export default function HomePage() {
                       )}
                       aria-label={`${shortcut.label}. ${shortcut.hint}`}
                     >
-                      <ShortcutGlyph iconSrc={shortcut.iconSrc} label={shortcut.label} />
-                      <span className="mt-2 block text-sm leading-tight text-text">{shortcut.label}</span>
-                      <span className="mt-1 block text-xs text-muted">{shortcut.hint}</span>
+                      <ShortcutGlyph iconSrc={shortcut.iconSrc} />
+                      <span className="mt-2 block break-words text-sm leading-tight text-text">{shortcut.label}</span>
+                      <span className="mt-1 block break-words text-xs text-muted">{shortcut.hint}</span>
                     </button>
                   );
                 })}
