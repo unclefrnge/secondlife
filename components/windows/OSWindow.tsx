@@ -53,7 +53,7 @@ export function OSWindow({
         onPointerDown={() => onFocus(window.id)}
       >
         <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-black/35 px-3 py-2">
-          <p className="min-w-0 truncate text-sm font-medium text-text">{window.title}</p>
+          <p className="min-w-0 truncate text-sm font-identity text-text">{window.title}</p>
           <div className="flex shrink-0 items-center gap-2">
             <Button
               type="button"
@@ -101,7 +101,7 @@ export function OSWindow({
         className="flex h-10 cursor-move select-none items-center justify-between border-b border-border bg-black/35 px-3"
         onPointerDown={(event) => onDragStart(event, window.id)}
       >
-        <p className="truncate text-sm font-medium text-text">{window.title}</p>
+        <p className="truncate text-sm font-identity text-text">{window.title}</p>
 
         <div className="flex items-center gap-2">
           <button

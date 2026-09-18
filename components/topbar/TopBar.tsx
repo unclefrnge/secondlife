@@ -126,7 +126,7 @@ export function TopBar({ windows, focusedWindowId, onAction }: TopBarProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <span className="text-sm font-medium text-text">ChamberOS</span>
+          <span className="text-sm font-identity text-text">ChamberOS</span>
 
           <Separator orientation="vertical" className="mx-1 h-4" />
 

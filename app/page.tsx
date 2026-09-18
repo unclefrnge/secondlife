@@ -765,12 +765,12 @@ export default function HomePage() {
     return (
       <main className="relative min-h-dvh overflow-hidden bg-black text-[#d8d8d8]">
         <section className="absolute inset-0 p-5 sm:p-6">
-          <div className="mx-auto h-full w-full max-w-[980px] rounded-[8px] border border-border/60 bg-black/85 p-4 font-mono text-[13px] leading-6 sm:text-sm">
+          <div className="mx-auto h-full w-full max-w-[980px] rounded-[8px] border border-border/60 bg-black/85 p-4 font-machine leading-6 sm:text-sm">
             {bootPhase === 'post' ? (
               <div className="relative h-full">
                 <div className="absolute right-0 top-0 hidden text-right sm:block">
                   <Image src="/chamber-star.svg" alt="Chamber Star" width={180} height={64} className="h-auto w-[180px] opacity-90" />
-                  <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[#b8b8b8]">certified resident build</p>
+                  <p className="mt-1 font-machine uppercase tracking-[0.12em] text-[#b8b8b8]">certified resident build</p>
                 </div>
                 <div className="space-y-1 sm:pr-56">
                   {POST_LINES.map((line) => (
@@ -817,7 +817,7 @@ export default function HomePage() {
                   type="button"
                   onClick={completeBoot}
                   aria-label="Skip simulated boot and continue to login"
-                  className="pointer-events-auto min-h-11 max-w-full rounded border border-border/60 bg-black/85 px-3 font-mono text-[11px] tracking-[0.08em] text-[#b8b8b8] hover:border-accent hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  className="pointer-events-auto min-h-11 max-w-full rounded border border-border/60 bg-black/85 px-3 font-machine tracking-[0.08em] text-[#b8b8b8] hover:border-accent hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   SKIP BOOT →
                 </button>

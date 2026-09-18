@@ -32,7 +32,10 @@ const config: Config = {
         focus: '0 0 0 2px rgba(198, 198, 198, 0.5)'
       },
       fontFamily: {
-        sans: ['var(--font-sans)']
+        sans: ['var(--font-sans)'],
+        identity: ['var(--font-identity)'],
+        mono: ['var(--font-machine)'],
+        machine: ['var(--font-machine)']
       }
     }
   },

@@ -2,6 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Web-only aliases deliberately exclude local() and installed font names. */
+@font-face {
+  font-family: 'Chamber Sysfont';
+  src: url('/fonts/sysfont.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Chamber Pixelspace';
+  src: url('/fonts/Pixelspace-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer utilities {
+  /* Each R95 face has its own native size; do not scale the 8pt bitmap. */
+  .text-xs, .text-sm { font-family: var(--font-sans); font-size: 13px; }
+  .text-base { font-family: 'R95 Sans Serif 10pt', sans-serif; font-size: 16px; }
+  .text-lg, .text-xl, .text-2xl, .text-3xl, .text-4xl {
+    font-family: 'R95 Sans Serif 12pt', sans-serif;
+    font-size: 20px;
+  }
+  .font-identity { font-family: var(--font-identity); font-weight: 400; }
+  .font-mono, .font-machine {
+    font-family: var(--font-machine);
+    font-size: 14px;
+    font-weight: 400;
+    font-kerning: none;
+    font-variant-ligatures: none;
+    letter-spacing: 0;
+  }
+  .font-machine :is(.text-xs, .text-sm, span) {
+    font-family: inherit;
+    font-size: 14px;
+  }
+}
+
 :root {
   --color-bg: #0b0b0c;
   --color-surface: #111113;
@@ -16,8 +56,9 @@
   --duration-ui: 220ms;
   --ease-calm: cubic-bezier(0.22, 1, 0.36, 1);
 
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', 'Segoe UI',
-    sans-serif;
+  --font-sans: 'R95 Sans Serif 8pt', sans-serif;
+  --font-identity: 'Chamber Sysfont', sans-serif;
+  --font-machine: 'Chamber Pixelspace', monospace;
 }
 
 * {
@@ -34,7 +75,8 @@ body {
 
 body {
   font-family: var(--font-sans);
-  text-rendering: optimizeLegibility;
+  font-size: 13px;
+  text-rendering: auto;
   -webkit-font-smoothing: antialiased;
   line-height: 1.55;
 }

@@ -4,6 +4,7 @@ import { type PointerEvent as ReactPointerEvent, type ReactNode, useMemo, useSta
 
 import { ChamberTextQuest } from '@/components/windows/apps/ChamberTextQuest';
 import { LoreMap } from '@/components/windows/apps/LoreMap';
+import { AboutChamberOS } from '@/components/windows/apps/AboutChamberOS';
 import { Notes } from '@/components/windows/apps/Notes';
 import { SecondLifeWinampPlayer } from '@/components/windows/apps/SecondLifeWinampPlayer';
 import { Settings } from '@/components/windows/apps/Settings';
@@ -38,6 +39,10 @@ function renderApp(
   autoplayToken: number,
   onPlayTrack: (trackId: string) => void
 ): ReactNode {
+  if (appId === 'credits') {
+    return <AboutChamberOS />;
+  }
+
   if (appId === 'about') {
     return <FrngeProfile />;
   }
@@ -78,6 +83,7 @@ function renderApp(
     return (
       <Notes
         heading="System Status"
+        machine
         hint="Current diagnostics"
         initialText={[
           'System: stable',

@@ -80,7 +80,7 @@ export function TerminalWindow({
     <section className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-2">
       <div
         ref={transcriptRef}
-        className="relative min-h-0 overflow-y-auto rounded-[4px] border border-[#2b3f2d] bg-[#050706] px-3 py-3 pr-2 font-mono text-[13px] leading-6"
+        className="relative min-h-0 overflow-y-auto rounded-[4px] border border-[#2b3f2d] bg-[#050706] px-3 py-3 pr-2 font-machine leading-6"
       >
         <div
           aria-hidden="true"
@@ -92,21 +92,21 @@ export function TerminalWindow({
         />
         {messages.map((message) => (
           <p key={message.id} className={cn('relative whitespace-pre-wrap', roleTone(message.role))}>
-            <span className="pr-2 text-[11px] uppercase tracking-[0.08em] text-[#6ea775]">{message.role}</span>
+            <span className="pr-2 text-sm uppercase tracking-[0.08em] text-[#6ea775]">{message.role}</span>
             {message.text}
           </p>
         ))}
       </div>
 
       <div className="grid shrink-0 gap-2 rounded-[4px] border border-[#2b3f2d] bg-[#070f0a] px-3 py-2">
-        <div className="flex items-center justify-between gap-3 border border-[#2b3f2d] bg-black/45 px-2 py-1 font-mono text-[11px] text-[#7dcf89]">
+        <div className="flex items-center justify-between gap-3 border border-[#2b3f2d] bg-black/45 px-2 py-1 font-machine text-[#7dcf89]">
           <p className="truncate">{statusLine}</p>
           <p className="shrink-0 text-[#67a96f]">mode: {mode}</p>
         </div>
 
         {compactSuggestions.length ? (
           <div className="flex items-center gap-2 overflow-hidden">
-            <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.1em] text-[#6ea775]">suggest</span>
+            <span className="shrink-0 font-machine uppercase tracking-[0.1em] text-[#6ea775]">suggest</span>
             <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto pb-1">
               {compactSuggestions.map((chip, index) => (
                 <Button
@@ -115,7 +115,7 @@ export function TerminalWindow({
                   size="sm"
                   type="button"
                   onClick={() => onSubmitCommand(chip.command)}
-                  className="h-7 shrink-0 border border-[#2b3f2d] bg-black/30 px-2 font-mono text-[11px] text-[#8ed596] hover:border-[#61a86a] hover:bg-[#0f1c12] hover:text-[#afffb8]"
+                  className="h-7 shrink-0 border border-[#2b3f2d] bg-black/30 px-2 font-machine text-[#8ed596] hover:border-[#61a86a] hover:bg-[#0f1c12] hover:text-[#afffb8]"
                 >
                   [{index + 1}] {chip.label}
                 </Button>
@@ -127,7 +127,7 @@ export function TerminalWindow({
                 size="sm"
                 type="button"
                 onClick={() => setShowAllSuggestions((current) => !current)}
-                className="h-7 shrink-0 border border-[#2b3f2d] bg-black/30 px-2 font-mono text-[11px] text-[#8ed596] hover:border-[#61a86a] hover:bg-[#0f1c12] hover:text-[#afffb8]"
+                className="h-7 shrink-0 border border-[#2b3f2d] bg-black/30 px-2 font-machine text-[#8ed596] hover:border-[#61a86a] hover:bg-[#0f1c12] hover:text-[#afffb8]"
               >
                 {showAllSuggestions ? 'hide' : `+${visibleChips.length - compactSuggestions.length}`}
               </Button>
@@ -145,7 +145,7 @@ export function TerminalWindow({
                   size="sm"
                   type="button"
                   onClick={() => onSubmitCommand(chip.command)}
-                  className="h-7 border border-[#2b3f2d] bg-black/30 px-2 font-mono text-[11px] text-[#8ed596] hover:border-[#61a86a] hover:bg-[#0f1c12] hover:text-[#afffb8]"
+                  className="h-7 border border-[#2b3f2d] bg-black/30 px-2 font-machine text-[#8ed596] hover:border-[#61a86a] hover:bg-[#0f1c12] hover:text-[#afffb8]"
                 >
                   [{index + 1}] {chip.label}
                 </Button>

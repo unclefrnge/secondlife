@@ -13,7 +13,7 @@ export function ChamberBootOverlay({ title, subtitle, progress, label, className
     <div className={cn('fixed inset-0 z-[80] flex items-center justify-center bg-black/76 backdrop-blur-[1px]', className)}>
       <section className="w-[min(560px,calc(100%-2rem))] rounded-[12px] border border-border bg-[#0d0d0f] p-4 sm:p-5 animate-window-pop">
         {label ? <p className="text-xs uppercase tracking-[0.12em] text-muted">{label}</p> : null}
-        <h2 className="mt-2 text-xl font-medium text-text">{title}</h2>
+        <h2 className="mt-2 text-xl font-identity text-text">{title}</h2>
         <p className="mt-1 text-sm text-muted">{subtitle}</p>
 
         <div className="mt-4 flex justify-center">

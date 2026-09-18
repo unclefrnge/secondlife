@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
+import '@react95/fonts/sans-serif/8pt';
+import '@react95/fonts/sans-serif/10pt';
+import '@react95/fonts/sans-serif/12pt';
 import './globals.css';
 import { frnge, siteMetadata } from '@/lib/config';
 
@@ -21,6 +24,7 @@ const jsonLd = {
 export const metadata: Metadata = {
   title: siteMetadata.title,
   description: siteMetadata.description,
+  icons: { icon: '/chamber-logo.svg' },
   metadataBase: new URL(siteMetadata.url),
   openGraph: {
     type: 'website',

@@ -5,13 +5,15 @@ interface NotesProps {
   hint?: string;
   initialText?: string;
   readOnly?: boolean;
+  machine?: boolean;
 }
 
 export function Notes({
   heading = 'Notes',
   hint = 'Simple scratchpad',
   initialText = '',
-  readOnly = false
+  readOnly = false,
+  machine = false
 }: NotesProps) {
   const [value, setValue] = useState(initialText);
 
@@ -26,7 +28,7 @@ export function Notes({
         value={value}
         onChange={(event) => setValue(event.target.value)}
         readOnly={readOnly}
-        className="min-h-48 w-full resize-y rounded-md border border-border bg-black/25 p-3 text-sm text-text outline-none transition-colors duration-ui ease-calm focus:border-accent"
+        className={`min-h-48 w-full resize-y rounded-md border border-border bg-black/25 p-3 text-sm text-text outline-none transition-colors duration-ui ease-calm focus:border-accent ${machine ? 'font-machine' : ''}`}
         placeholder="Type here..."
       />
     </section>

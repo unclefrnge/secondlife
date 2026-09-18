@@ -1266,8 +1266,8 @@ export default function ChamberTextQuestPage() {
                     className="rounded-[6px] border border-[#2b3f2d]"
                   />
                   <div>
-                    <p className="font-mono text-sm text-[#8df29a]">Chamber Text Quest</p>
-                    <p className="font-mono text-[11px] text-[#6ea775]">canon scene build</p>
+                    <p className="font-identity text-sm text-[#8df29a]">Chamber Text Quest</p>
+                    <p className="font-machine text-[#6ea775]">canon scene build</p>
                   </div>
                 </div>
               ) : null}
@@ -1325,13 +1325,13 @@ export default function ChamberTextQuestPage() {
             embedded ? 'mt-2 min-h-0 overflow-hidden' : 'mt-3 min-h-0 flex-1'
           )}
         >
-          <section className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-2">
-            <div className="flex items-center justify-between gap-3 border border-[#2b3f2d] bg-black/45 px-2 py-1 font-mono text-[11px] text-[#7dcf89]">
-              <p className="truncate">{scene.title}</p>
+          <section className="grid h-full min-h-0 min-w-0 grid-cols-1 grid-rows-[auto_minmax(0,1fr)_auto] gap-2">
+            <div className="flex items-center justify-between gap-3 border border-[#2b3f2d] bg-black/45 px-2 py-1 font-machine text-[#7dcf89]">
+              <p className="min-w-0 flex-1 truncate">{scene.title}</p>
               <p className="shrink-0 text-[#67a96f]">{isTypingSceneText ? 'writing...' : `choices: ${visibleChoices.length}`}</p>
             </div>
 
-            <div className="relative min-h-0 overflow-y-auto overscroll-y-contain rounded-[4px] border border-[#2b3f2d] bg-[#050706] px-3 py-3 pr-2 font-mono text-[13px] leading-6">
+            <div className="relative min-h-0 min-w-0 overflow-y-auto overscroll-y-contain rounded-[4px] border border-[#2b3f2d] bg-[#050706] px-3 py-3 pr-2 font-machine leading-6">
               <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 opacity-15"
@@ -1345,15 +1345,15 @@ export default function ChamberTextQuestPage() {
                 <p className="relative mb-3 whitespace-pre-wrap italic text-[#89d994]">{visibleOutcome}</p>
               ) : null}
 
-              <p className="relative whitespace-pre-line text-[14px] leading-7 text-[#b8f3bf] sm:text-[15px] sm:leading-8">
+              <p className="relative whitespace-pre-line font-machine leading-7 text-[#b8f3bf] sm:leading-8">
                 {displayedSceneText}
                 {isTypingSceneText ? <span className="ml-0.5 inline-block animate-pulse text-[#8ed596]">|</span> : null}
               </p>
             </div>
 
-            <div className="grid shrink-0 gap-2 rounded-[4px] border border-[#2b3f2d] bg-[#070f0a] px-3 py-2">
-              <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#6ea775]">Choose</p>
-              <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid min-w-0 shrink-0 grid-cols-1 gap-2 rounded-[4px] border border-[#2b3f2d] bg-[#070f0a] px-3 py-2">
+              <p className="font-machine uppercase tracking-[0.1em] text-[#6ea775]">Choose</p>
+              <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
                 {visibleChoices.map((choice, index) => (
                   <Button
                     key={choice.id}
@@ -1361,7 +1361,7 @@ export default function ChamberTextQuestPage() {
                     variant="ghost"
                     onClick={() => applyChoice(choice.id)}
                     disabled={isTypingSceneText}
-                    className="min-h-12 justify-start border border-[#2b3f2d] bg-black/30 px-4 py-2 text-left font-mono text-[#8ed596] whitespace-normal break-words leading-5 hover:border-[#61a86a] hover:bg-[#0f1c12] hover:text-[#afffb8] disabled:cursor-not-allowed disabled:opacity-55"
+                    className="min-h-12 min-w-0 justify-start border border-[#2b3f2d] bg-black/30 px-4 py-2 text-left text-sm text-[#8ed596] whitespace-normal break-words leading-5 hover:border-[#61a86a] hover:bg-[#0f1c12] hover:text-[#afffb8] disabled:cursor-not-allowed disabled:opacity-55"
                   >
                     <span className="inline-block w-full whitespace-normal break-words">
                       [{index + 1}] {choice.label}
@@ -1451,7 +1451,7 @@ export default function ChamberTextQuestPage() {
             <DialogDescription className="font-mono text-xs uppercase tracking-[0.09em] text-[#c9ccca]">
               A PRIZE HAS BEEN DETECTED ON YOUR SYSTEM.
             </DialogDescription>
-            <p className="mt-3 font-mono text-[11px] leading-5 text-[#aeb4af]">
+            <p className="mt-3 font-machine leading-5 text-[#aeb4af]">
               Click CLAIM to download. Do not close this window (closing does nothing).
             </p>
 
@@ -1468,7 +1468,7 @@ export default function ChamberTextQuestPage() {
                   type="button"
                   variant="ghost"
                   onClick={() => setNoThanksClicks((current) => current + 1)}
-                  className="min-h-10 border border-[#505652] bg-[#161a17] font-mono text-[11px] uppercase tracking-[0.08em] text-[#c8cdc8] hover:bg-[#202420]"
+                  className="min-h-10 border border-[#505652] bg-[#161a17] font-machine uppercase tracking-[0.08em] text-[#c8cdc8] hover:bg-[#202420]"
                 >
                   NO THANKS (SUSPICIOUS)
                 </Button>
@@ -1482,7 +1482,7 @@ export default function ChamberTextQuestPage() {
                   <Button
                     type="button"
                     onClick={startNewGame}
-                    className="min-h-10 border border-[#2e3430] bg-[#d7dcd7] font-mono text-[11px] uppercase tracking-[0.08em] text-[#101310] hover:bg-white"
+                    className="min-h-10 border border-[#2e3430] bg-[#d7dcd7] font-machine uppercase tracking-[0.08em] text-[#101310] hover:bg-white"
                   >
                     NEW RUN
                   </Button>
@@ -1491,7 +1491,7 @@ export default function ChamberTextQuestPage() {
                       asChild
                       type="button"
                       variant="ghost"
-                      className="min-h-10 border border-[#505652] bg-[#161a17] font-mono text-[11px] uppercase tracking-[0.08em] text-[#c8cdc8] hover:bg-[#202420]"
+                      className="min-h-10 border border-[#505652] bg-[#161a17] font-machine uppercase tracking-[0.08em] text-[#c8cdc8] hover:bg-[#202420]"
                     >
                       <Link href="/">RETURN TO DESKTOP</Link>
                     </Button>

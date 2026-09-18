@@ -2,6 +2,7 @@ export const SIGIL_ID = 'CHMBR-13A-LOOP-077';
 
 export type AppId =
   | 'about'
+  | 'credits'
   | 'text-quest'
   | 'library'
   | 'listen'
@@ -36,6 +37,7 @@ export interface AppWindowMeta {
 }
 
 export const APP_META: Record<AppId, AppWindowMeta> = {
+  credits: { title: 'About / Credits', width: 540, height: 540 },
   about: { title: 'FRNGE.TXT', width: 540, height: 430 },
   'text-quest': { title: 'Chamber Text Quest', width: 920, height: 620 },
   library: { title: 'RELEASES/', width: 600, height: 560 },

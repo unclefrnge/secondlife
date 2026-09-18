@@ -20,7 +20,7 @@ export function SecondLifeLibrary({ activeTrackId, onPlayTrack }: SecondLifeLibr
   return (
     <div className="space-y-4">
       <header className="rounded-md border border-border bg-black/25 px-3 py-2">
-        <p className="text-[11px] uppercase tracking-[0.12em] text-muted">secondlife-media</p>
+        <p className="text-xs uppercase tracking-[0.12em] text-muted">secondlife-media</p>
         <p className="text-sm text-text">{orderedTracks.length} items</p>
       </header>
 
@@ -45,7 +45,7 @@ export function SecondLifeLibrary({ activeTrackId, onPlayTrack }: SecondLifeLibr
                 ♪
               </span>
               <span className="text-xs leading-snug text-text">{fileLabel}</span>
-              <span className="mt-1 text-[11px] text-muted">{isActive ? 'now selected' : 'audio file'}</span>
+              <span className="mt-1 text-xs text-muted">{isActive ? 'now selected' : 'audio file'}</span>
             </button>
           );
         })}

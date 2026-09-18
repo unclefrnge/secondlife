@@ -27,6 +27,8 @@ export interface MenuEntry {
 }
 
 export const systemMenuItems: MenuEntry[] = [
+  { id: 'system-credits', label: 'About / Credits', action: { type: 'open-window', appId: 'credits' } },
+  { id: 'system-credits-divider', separator: true },
   { id: 'system-about', label: 'FRNGE.TXT', action: { type: 'open-window', appId: 'about' } },
   { id: 'system-releases', label: 'RELEASES/', action: { type: 'open-window', appId: 'library' } },
   { id: 'system-listen', label: 'LISTEN.EXE', action: { type: 'open-window', appId: 'support' } },
