@@ -102,7 +102,7 @@ export function TopBar({ windows, focusedWindowId, onAction }: TopBarProps) {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 h-10 border-b border-border bg-[#0a0a0b] text-text">
+      <header className="chamber-topbar fixed inset-x-0 top-0 z-50 h-10 border-b border-border bg-[#0a0a0b] text-text">
         <div className="mx-auto flex h-full w-full items-center gap-2 px-2 sm:px-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

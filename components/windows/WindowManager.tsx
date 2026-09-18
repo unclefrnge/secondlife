@@ -160,19 +160,20 @@ export function WindowManager({
     () => windows.filter((window) => !window.isMinimised).sort((a, b) => a.zIndex - b.zIndex),
     [windows]
   );
-  const hasVisibleWindows = visibleWindows.length > 0;
+  const hasForegroundWindow = visibleWindows.some((window) => window.id === focusedWindowId);
+  // Keep mobile apps mounted while hidden so their local state survives app switching.
+  const renderedWindows = isMobile ? windows : visibleWindows;
 
   return (
     <>
       <section
         className={cn(
-          'w-full',
           isMobile
-            ? cn('absolute inset-0 z-20 space-y-3 overflow-y-auto pb-2 pr-1', hasVisibleWindows ? 'pointer-events-auto' : 'pointer-events-none')
-            : 'pointer-events-none relative h-full'
+            ? cn('absolute inset-3 z-20 min-h-0 min-w-0 overflow-hidden', hasForegroundWindow ? 'pointer-events-auto' : 'pointer-events-none')
+            : 'pointer-events-none relative h-full w-full'
         )}
       >
-        {visibleWindows.map((window) => (
+        {renderedWindows.map((window) => (
           <OSWindow
             key={window.id}
             window={window}

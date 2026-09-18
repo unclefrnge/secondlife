@@ -48,6 +48,57 @@ a {
   background: rgba(242, 242, 240, 0.2);
 }
 
+@media (max-width: 767px) {
+  .chamber-desktop {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    padding-top: calc(2.5rem + env(safe-area-inset-top, 0px));
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  .chamber-topbar {
+    height: calc(2.5rem + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  .chamber-workspace-layout {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    height: auto;
+    padding-top: 0;
+  }
+
+  .chamber-workspace {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 0.75rem;
+  }
+
+  .chamber-taskbar {
+    position: relative;
+    flex-shrink: 0;
+    max-height: 30dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .chamber-taskbar button {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 @keyframes window-pop {
   from {
     opacity: 0;

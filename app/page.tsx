@@ -529,13 +529,17 @@ export default function HomePage() {
     setFocusedWindowId(windowId);
   }, []);
 
-  const closeById = useCallback((windowId: string) => {
-    setWindows((current) => {
-      const next = closeWindow(current, windowId);
-      setFocusedWindowId((focused) => (focused === windowId ? getTopWindowId(next) : focused));
-      return next;
-    });
-  }, []);
+  const closeById = useCallback(
+    (windowId: string) => {
+      setWindows((current) => {
+        const next = closeWindow(current, windowId);
+        const focusCandidates = isMobile ? next.filter((window) => !window.isMinimised) : next;
+        setFocusedWindowId((focused) => (focused === windowId ? getTopWindowId(focusCandidates) : focused));
+        return next;
+      });
+    },
+    [isMobile]
+  );
 
   const minimiseById = useCallback((windowId: string) => {
     setWindows((current) => {
@@ -582,6 +586,7 @@ export default function HomePage() {
     () => windows.filter((window) => window.isMinimised).sort((a, b) => a.zIndex - b.zIndex),
     [windows]
   );
+  const hasMobileForeground = windows.some((window) => window.id === focusedWindowId && !window.isMinimised);
   const selectedAccount = LOGIN_ACCOUNTS.find((account) => account.id === selectedAccountId) ?? LOGIN_ACCOUNTS[0];
   const bootPhase = getBootPhase(bootElapsedMs);
   const bootProgress = clamp(bootElapsedMs / BOOT_TOTAL_MS, 0, 1);
@@ -906,15 +911,18 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-dvh overflow-hidden bg-bg text-text">
+    <main className="chamber-desktop min-h-dvh overflow-hidden bg-bg text-text">
       <TopBar windows={windows} focusedWindowId={focusedWindowId} onAction={handleTopBarAction} />
 
-      <section className="relative h-[calc(100dvh-2.5rem)] pt-10">
+      <section className="chamber-workspace-layout relative h-[calc(100dvh-2.5rem)] pt-10">
         <div className="absolute inset-0 bg-[#0b0b0c]" />
 
-        <div ref={workspaceRef} className="relative h-full w-full px-3 pb-20 pt-3 sm:px-4">
+        <div ref={workspaceRef} className="chamber-workspace relative h-full w-full px-3 pb-20 pt-3 sm:px-4">
           {isMobile ? (
-            <div className="pointer-events-auto mb-3 grid max-w-[560px] grid-cols-2 gap-2">
+            <div
+              hidden={hasMobileForeground}
+              className={cn('pointer-events-auto mb-3 max-w-[560px] grid-cols-2 gap-2', hasMobileForeground ? 'hidden' : 'grid')}
+            >
               {DESKTOP_SHORTCUTS.map((shortcut) => (
                 <button
                   key={shortcut.id}
@@ -1010,7 +1018,7 @@ export default function HomePage() {
           />
         </div>
 
-        <footer className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-[#0a0a0b]/95 px-3 py-2">
+        <footer className="chamber-taskbar fixed inset-x-0 bottom-0 z-40 border-t border-border bg-[#0a0a0b]/95 px-3 py-2">
           <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-2">
             <span className="text-xs uppercase tracking-[0.08em] text-muted">Minimised</span>
             {minimisedWindows.length === 0 ? (

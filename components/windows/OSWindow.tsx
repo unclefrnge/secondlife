@@ -42,15 +42,19 @@ export function OSWindow({
   if (mobile) {
     return (
       <section
+        role="region"
+        aria-label={window.title}
+        hidden={!focused || window.isMinimised}
         className={cn(
-          'pointer-events-auto flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border bg-[#0d0d0f]',
+          'pointer-events-auto h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[10px] border bg-[#0d0d0f]',
+          focused && !window.isMinimised ? 'flex' : 'hidden',
           focused ? 'border-accent' : 'border-border'
         )}
         onPointerDown={() => onFocus(window.id)}
       >
-        <header className="flex items-center justify-between border-b border-border bg-black/35 px-3 py-2">
-          <p className="truncate text-sm font-medium text-text">{window.title}</p>
-          <div className="flex items-center gap-2">
+        <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-black/35 px-3 py-2">
+          <p className="min-w-0 truncate text-sm font-medium text-text">{window.title}</p>
+          <div className="flex shrink-0 items-center gap-2">
             <Button
               type="button"
               size="sm"
@@ -71,7 +75,7 @@ export function OSWindow({
             </Button>
           </div>
         </header>
-        <div className={cn('min-h-0 flex-1 overflow-y-auto', isListenWindow ? 'p-0' : 'p-3')}>{children}</div>
+        <div className={cn('min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden', isListenWindow ? 'p-0' : 'p-3')}>{children}</div>
       </section>
     );
   }
