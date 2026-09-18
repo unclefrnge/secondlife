@@ -69,13 +69,13 @@ const SHORTCUT_CARD_HEIGHT = 104;
 const SHORTCUT_GRID_X = 188;
 const SHORTCUT_GRID_Y = 118;
 const SHORTCUT_MARGIN = 12;
-const BOOT_TOTAL_MS = 7000;
+const BOOT_TOTAL_MS = 4000;
 const CHAMBER_OS_USER_KEY = 'chamber_os_user';
 const CHAMBER_OS_LOGGED_IN_KEY = 'chamber_os_logged_in';
 const BOOT_PHASE_TIMING = {
-  postEnd: 1700,
-  managerEnd: 2600,
-  loaderEnd: 6800,
+  postEnd: Math.round(BOOT_TOTAL_MS * (1700 / 7000)),
+  managerEnd: Math.round(BOOT_TOTAL_MS * (2600 / 7000)),
+  loaderEnd: Math.round(BOOT_TOTAL_MS * (6800 / 7000)),
   handoffEnd: BOOT_TOTAL_MS
 } as const;
 
@@ -253,6 +253,7 @@ function ShortcutGlyph({ iconSrc, label }: { iconSrc: string; label: string }) {
 
 export default function HomePage() {
   const workspaceRef = useRef<HTMLDivElement | null>(null);
+  const bootTimerRef = useRef<number | null>(null);
   const isMobile = useIsMobile();
 
   const [systemStage, setSystemStage] = useState<SystemStage>('boot');
@@ -294,6 +295,15 @@ export default function HomePage() {
     setSessionHydrated(true);
   }, []);
 
+  const completeBoot = useCallback(() => {
+    if (bootTimerRef.current !== null) {
+      window.clearInterval(bootTimerRef.current);
+      bootTimerRef.current = null;
+    }
+    setBootElapsedMs(BOOT_TOTAL_MS);
+    setSystemStage('login');
+  }, []);
+
   useEffect(() => {
     if (!sessionHydrated || systemStage !== 'boot') {
       return;
@@ -303,16 +313,18 @@ export default function HomePage() {
     const timer = window.setInterval(() => {
       const elapsed = Date.now() - startedAt;
       if (elapsed >= BOOT_TOTAL_MS) {
-        setBootElapsedMs(BOOT_TOTAL_MS);
-        setSystemStage('login');
-        window.clearInterval(timer);
+        completeBoot();
         return;
       }
       setBootElapsedMs(elapsed);
     }, 50);
+    bootTimerRef.current = timer;
 
-    return () => window.clearInterval(timer);
-  }, [sessionHydrated, systemStage]);
+    return () => {
+      window.clearInterval(timer);
+      bootTimerRef.current = null;
+    };
+  }, [completeBoot, sessionHydrated, systemStage]);
 
   useEffect(() => {
     if (!workspaceRef.current) {
@@ -800,6 +812,16 @@ export default function HomePage() {
 
           <div className="pointer-events-none fixed inset-x-5 bottom-6 sm:inset-x-6">
             <div className="mx-auto max-w-[980px]">
+              <div className="mb-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={completeBoot}
+                  aria-label="Skip simulated boot and continue to login"
+                  className="pointer-events-auto min-h-11 max-w-full rounded border border-border/60 bg-black/85 px-3 font-mono text-[11px] tracking-[0.08em] text-[#b8b8b8] hover:border-accent hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  SKIP BOOT →
+                </button>
+              </div>
               <div className="h-[2px] w-full overflow-hidden rounded bg-border/80">
                 <div className="h-full bg-text transition-[width] duration-75 ease-linear" style={{ width: `${Math.round(bootProgress * 100)}%` }} />
               </div>
