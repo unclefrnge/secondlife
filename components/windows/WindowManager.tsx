@@ -25,6 +25,7 @@ interface WindowManagerProps {
   autoplayToken: number;
   uiScale: number;
   workspaceSize: { width: number; height: number };
+  minimisingWindowIds: string[];
   onOpenWindow: (appId: AppId) => void;
   onPlayTrack: (trackId: string) => void;
   onFocusWindow: (windowId: string) => void;
@@ -150,6 +151,7 @@ export function WindowManager({
   autoplayToken,
   uiScale,
   workspaceSize,
+  minimisingWindowIds,
   onOpenWindow,
   onPlayTrack,
   onFocusWindow,
@@ -184,6 +186,7 @@ export function WindowManager({
             key={window.id}
             window={window}
             focused={window.id === focusedWindowId}
+            minimising={minimisingWindowIds.includes(window.id)}
             mobile={isMobile}
             uiScale={uiScale}
             workspaceSize={workspaceSize}

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -49,6 +49,13 @@ type Scene = {
 
 type DrawerType = 'inventory' | 'log' | null;
 type EndingId = 'outside_intact' | 'outside_haunted' | 'stay_deliberate';
+type StoryParagraphKind = 'narration' | 'dialogue';
+
+type StoryParagraph = {
+  text: string;
+  start: number;
+  kind: StoryParagraphKind;
+};
 
 const STORAGE_KEY = 'chamber-text-quest-scenes-v3';
 const COMPLETED_KEY = 'chamber_text_quest_completed';
@@ -58,6 +65,50 @@ const ENDING_SCENE_TO_ID: Record<string, EndingId> = {
   S15_haunted: 'outside_haunted',
   S15_stay: 'stay_deliberate'
 };
+
+function getStoryParagraphs(source: string): StoryParagraph[] {
+  let cursor = 0;
+
+  return source.split('\n\n').map((text) => {
+    const start = source.indexOf(text, cursor);
+    cursor = start + text.length + 2;
+
+    const isDialogue = /\b(asks?|says?|reads?|sign|signage|warning|edict|question|handwriting|sentence)\b|[“”"]/i.test(text);
+
+    return {
+      text,
+      start,
+      kind: isDialogue ? 'dialogue' : 'narration'
+    };
+  });
+}
+
+function StoryText({ source, visibleCharacters }: { source: string; visibleCharacters?: number }) {
+  return (
+    <div className="space-y-3.5 sm:space-y-4">
+      {getStoryParagraphs(source).map((paragraph, index) => {
+        const visibleText =
+          visibleCharacters === undefined
+            ? paragraph.text
+            : paragraph.text.slice(0, Math.max(0, visibleCharacters - paragraph.start));
+
+        return (
+          <p
+            key={`${index}-${paragraph.start}`}
+            className={cn(
+              'm-0 min-h-[1lh] whitespace-pre-wrap text-base leading-6',
+              paragraph.kind === 'dialogue'
+                ? 'border-l border-[#315d38] pl-3 font-identity text-[#d2f5d6]'
+                : 'font-sans text-[#b8f3bf]'
+            )}
+          >
+            {visibleText}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -1028,6 +1079,7 @@ export default function ChamberTextQuestPage() {
   const [prizeDownloaded, setPrizeDownloaded] = useState(false);
   const [prizeCheckbox, setPrizeCheckbox] = useState(false);
   const [noThanksClicks, setNoThanksClicks] = useState(0);
+  const typingRunRef = useRef(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -1092,8 +1144,15 @@ export default function ChamberTextQuestPage() {
     }
 
     const source = sceneText;
+    const runId = ++typingRunRef.current;
     if (!source) {
       setDisplayedSceneText('');
+      setIsTypingSceneText(false);
+      return;
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setDisplayedSceneText(source);
       setIsTypingSceneText(false);
       return;
     }
@@ -1106,7 +1165,7 @@ export default function ChamberTextQuestPage() {
     setIsTypingSceneText(true);
 
     const tick = () => {
-      if (cancelled) {
+      if (cancelled || typingRunRef.current !== runId) {
         return;
       }
 
@@ -1141,6 +1200,35 @@ export default function ChamberTextQuestPage() {
       }
     };
   }, [hydrated, sceneText]);
+
+  const revealSceneText = () => {
+    if (!isTypingSceneText) {
+      return;
+    }
+
+    typingRunRef.current += 1;
+    setDisplayedSceneText(sceneText);
+    setIsTypingSceneText(false);
+  };
+
+  useEffect(() => {
+    if (!isTypingSceneText) {
+      return;
+    }
+
+    const revealOnSpace = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.code !== 'Space' || target?.closest('button, a, input, textarea, select')) {
+        return;
+      }
+
+      event.preventDefault();
+      revealSceneText();
+    };
+
+    window.addEventListener('keydown', revealOnSpace);
+    return () => window.removeEventListener('keydown', revealOnSpace);
+  }, [isTypingSceneText, sceneText]);
 
   const visibleChoices = useMemo(
     () =>
@@ -1243,17 +1331,17 @@ export default function ChamberTextQuestPage() {
   return (
     <main
       className={cn(
-        'relative bg-[#050706] text-[#b8f3bf]',
-        embedded ? 'h-[100dvh] overflow-hidden px-0 py-0' : 'min-h-dvh overflow-hidden px-3 py-5 sm:px-6'
+        'relative h-[100dvh] overflow-hidden bg-[#050706] text-[#b8f3bf]',
+        embedded ? 'px-0 py-0' : 'px-3 py-4 sm:px-6 sm:py-5'
       )}
     >
       <div
         className={cn(
-          'relative mx-auto flex min-h-full max-w-5xl flex-col',
-          embedded ? 'h-full max-w-none grid grid-rows-[auto_minmax(0,1fr)] p-2 sm:p-3' : 'min-h-[calc(100dvh-2rem)]'
+          'chamber-quest-shell relative mx-auto grid h-full max-w-5xl grid-rows-[auto_minmax(0,1fr)]',
+          embedded ? 'max-w-none' : ''
         )}
       >
-        <header className="sticky top-0 z-20 rounded-[4px] border border-[#2b3f2d] bg-[#0a120d] px-3 py-3">
+        <header className="z-20 border-b border-[#2b3f2d] bg-[#0a120d] px-3 py-2.5 sm:px-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               {!embedded ? (
@@ -1319,21 +1407,27 @@ export default function ChamberTextQuestPage() {
           </div>
         </header>
 
-        <section
-          className={cn(
-            'rounded-[4px] border border-[#2b3f2d] bg-[#071009] p-3',
-            embedded ? 'mt-2 min-h-0 overflow-hidden' : 'mt-3 min-h-0 flex-1'
-          )}
-        >
-          <section className="grid h-full min-h-0 min-w-0 grid-cols-1 grid-rows-[auto_minmax(0,1fr)_auto] gap-2">
-            <div className="flex items-center justify-between gap-3 border border-[#2b3f2d] bg-black/45 px-3 py-2 text-[#7dcf89]">
-              <p className="font-lore min-w-0 flex-1 truncate text-xl tracking-[0.03em]">{scene.title}</p>
-              <p className="font-machine shrink-0 text-[#67a96f]">{isTypingSceneText ? 'writing...' : `choices: ${visibleChoices.length}`}</p>
+        <section className="min-h-0 overflow-hidden bg-[#071009]">
+          <section className="grid h-full min-h-0 min-w-0 grid-cols-1 grid-rows-[auto_minmax(0,1fr)_auto]">
+            <div className="flex items-center justify-between gap-3 border-b border-[#2b3f2d] bg-black/25 px-4 py-2.5 text-[#7dcf89] sm:px-5">
+              <p className="font-lore min-w-0 flex-1 truncate text-[22px] leading-none tracking-[0.025em]">{scene.title}</p>
+              <p className="font-machine shrink-0 text-[#67a96f]">
+                {isTypingSceneText ? 'writing · space to reveal' : `choices: ${visibleChoices.length}`}
+              </p>
             </div>
 
             <div
               key={state.sceneId}
-              className="relative min-h-0 min-w-0 overflow-y-auto overscroll-y-contain rounded-[4px] border border-[#2b3f2d] bg-[#050706] px-3 py-3 pr-2 font-machine leading-6 [overflow-anchor:none] [scrollbar-gutter:stable]"
+              role="button"
+              tabIndex={isTypingSceneText ? 0 : -1}
+              aria-label={isTypingSceneText ? 'Reveal the complete passage' : 'Current passage'}
+              onClick={revealSceneText}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  revealSceneText();
+                }
+              }}
+              className="relative min-h-0 min-w-0 overflow-y-auto overscroll-y-contain bg-[#050706] px-4 py-4 pr-3 outline-none [overflow-anchor:none] [scrollbar-gutter:stable] focus-visible:shadow-[inset_0_0_0_1px_#61a86a] sm:px-5 sm:py-5 sm:pr-4"
             >
               <div
                 aria-hidden="true"
@@ -1347,27 +1441,30 @@ export default function ChamberTextQuestPage() {
               <div className="relative min-h-full">
                 <div aria-hidden="true" className="invisible">
                   {visibleOutcome ? (
-                    <p className="mb-3 whitespace-pre-wrap italic text-[#89d994]">{visibleOutcome}</p>
+                    <div className="mb-4 grid grid-cols-[auto_1fr] items-start gap-3 text-base leading-6">
+                      <p className="font-lore-pixel text-base leading-6 text-[#71a978]">echo</p>
+                      <p className="font-sans italic text-[#9cdda5]">{visibleOutcome}</p>
+                    </div>
                   ) : null}
-                  <p className="whitespace-pre-line font-machine leading-7 sm:leading-8">{sceneText}</p>
+                  <StoryText source={sceneText} />
                 </div>
 
                 <div className="absolute inset-0">
                   {visibleOutcome ? (
-                    <p className="mb-3 whitespace-pre-wrap italic text-[#89d994]">{visibleOutcome}</p>
+                    <div className="mb-4 grid grid-cols-[auto_1fr] items-start gap-3 text-base leading-6">
+                      <p className="font-lore-pixel text-base leading-6 text-[#71a978]">echo</p>
+                      <p className="font-sans italic text-[#9cdda5]">{visibleOutcome}</p>
+                    </div>
                   ) : null}
 
-                  <p className="whitespace-pre-line font-machine leading-7 text-[#b8f3bf] sm:leading-8">
-                    {displayedSceneText}
-                    {isTypingSceneText ? <span className="ml-0.5 inline-block animate-pulse text-[#8ed596]">|</span> : null}
-                  </p>
+                  <StoryText source={sceneText} visibleCharacters={displayedSceneText.length} />
                 </div>
               </div>
             </div>
 
-            <div className="grid min-w-0 shrink-0 grid-cols-1 gap-2 rounded-[4px] border border-[#2b3f2d] bg-[#070f0a] px-3 py-2">
-              <p className="font-lore-pixel text-base tracking-[0.04em] text-[#6ea775]">Choose</p>
-              <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="grid min-w-0 shrink-0 grid-cols-1 gap-2 border-t border-[#2b3f2d] bg-[#070f0a] px-3 py-2.5 sm:px-4">
+              <p className="font-lore-pixel text-base leading-none tracking-[0.04em] text-[#6ea775]">choose a path</p>
+              <div className={`chamber-choice-grid chamber-choice-count-${visibleChoices.length} grid min-w-0 grid-cols-1 gap-2`}>
                 {visibleChoices.map((choice, index) => (
                   <Button
                     key={choice.id}
@@ -1375,7 +1472,7 @@ export default function ChamberTextQuestPage() {
                     variant="ghost"
                     onClick={() => applyChoice(choice.id)}
                     disabled={isTypingSceneText}
-                    className="min-h-12 min-w-0 justify-start border border-[#2b3f2d] bg-black/30 px-4 py-2 text-left text-sm text-[#8ed596] whitespace-normal break-words leading-5 hover:border-[#61a86a] hover:bg-[#0f1c12] hover:text-[#afffb8] disabled:cursor-not-allowed disabled:opacity-55"
+                    className="min-h-11 min-w-0 justify-start border border-[#2b3f2d] bg-black/30 px-3 py-2 text-left text-base text-[#a5e8ad] whitespace-normal break-words leading-5 hover:border-[#61a86a] hover:bg-[#0f1c12] hover:text-[#d1ffd6] focus-visible:border-[#8df29a] focus-visible:shadow-[0_0_0_1px_#8df29a] disabled:cursor-not-allowed disabled:opacity-45"
                   >
                     <span className="inline-block w-full whitespace-normal break-words">
                       [{index + 1}] {choice.label}
@@ -1576,6 +1673,41 @@ export default function ChamberTextQuestPage() {
 
         .chamber-prize-still {
           animation: none;
+        }
+
+        .chamber-quest-shell {
+          container-name: chamber-quest;
+          container-type: inline-size;
+        }
+
+        @container chamber-quest (min-width: 600px) {
+          .chamber-choice-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .chamber-choice-count-1 > :only-child,
+          .chamber-choice-count-3 > :last-child,
+          .chamber-choice-count-5 > :last-child {
+            grid-column: 1 / -1;
+          }
+        }
+
+        @container chamber-quest (min-width: 900px) {
+          .chamber-choice-count-3,
+          .chamber-choice-count-5 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+
+          .chamber-choice-count-3 > :last-child,
+          .chamber-choice-count-5 > :last-child {
+            grid-column: auto;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .chamber-prize-shake {
+            animation: none;
+          }
         }
       `}</style>
     </main>

@@ -64,10 +64,10 @@ interface LoginAccount {
   summary: string;
 }
 
-const SHORTCUT_CARD_WIDTH = 172;
-const SHORTCUT_CARD_HEIGHT = 112;
-const SHORTCUT_GRID_X = 188;
-const SHORTCUT_GRID_Y = 118;
+const SHORTCUT_CARD_WIDTH = 184;
+const SHORTCUT_CARD_HEIGHT = 126;
+const SHORTCUT_GRID_X = 200;
+const SHORTCUT_GRID_Y = 132;
 const SHORTCUT_MARGIN = 12;
 const BOOT_TOTAL_MS = 4000;
 const CHAMBER_OS_USER_KEY = 'chamber_os_user';
@@ -244,15 +244,30 @@ function statusDotClass(status: AccountStatus): string {
 
 function ShortcutGlyph({ iconSrc }: { iconSrc: string }) {
   return (
-    <span aria-hidden="true" className="flex h-12 w-12 items-center justify-center">
-      <Image src={iconSrc} alt="" width={48} height={48} unoptimized className="h-12 w-12 object-contain" />
+    <span aria-hidden="true" className="flex h-[68px] w-[68px] items-center justify-center">
+      <Image src={iconSrc} alt="" width={68} height={68} unoptimized className="h-[68px] w-[68px] object-contain" />
     </span>
   );
+}
+
+function getAppIconSrc(appId: AppId): string {
+  const iconByApp: Partial<Record<AppId, string>> = {
+    about: '/desktop-icons/who-is-frnge.png',
+    library: '/desktop-icons/discography.png',
+    support: '/desktop-icons/where-2-stream.png',
+    steal: '/desktop-icons/contact.png',
+    'lore-index': '/desktop-icons/chamber-collective.png',
+    'text-quest': '/desktop-icons/chamber-quest.svg',
+    listen: '/desktop-icons/listen-to-second-life.svg'
+  };
+
+  return iconByApp[appId] ?? '/chamber-logo.svg';
 }
 
 export default function HomePage() {
   const workspaceRef = useRef<HTMLDivElement | null>(null);
   const bootTimerRef = useRef<number | null>(null);
+  const minimiseTimersRef = useRef<Record<string, number>>({});
   const isMobile = useIsMobile();
 
   const [systemStage, setSystemStage] = useState<SystemStage>('boot');
@@ -272,6 +287,7 @@ export default function HomePage() {
   const [dragShortcut, setDragShortcut] = useState<DragShortcutState | null>(null);
   const [blockedShortcutOpenId, setBlockedShortcutOpenId] = useState<string | null>(null);
   const [dragWindow, setDragWindow] = useState<DragWindowState | null>(null);
+  const [minimisingWindowIds, setMinimisingWindowIds] = useState<string[]>([]);
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
   const [autoplayToken, setAutoplayToken] = useState(0);
 
@@ -324,6 +340,13 @@ export default function HomePage() {
       bootTimerRef.current = null;
     };
   }, [completeBoot, sessionHydrated, systemStage]);
+
+  useEffect(
+    () => () => {
+      Object.values(minimiseTimersRef.current).forEach((timer) => window.clearTimeout(timer));
+    },
+    []
+  );
 
   useEffect(() => {
     if (!workspaceRef.current) {
@@ -553,17 +576,27 @@ export default function HomePage() {
   );
 
   const minimiseById = useCallback((windowId: string) => {
-    setWindows((current) => {
-      const next = minimiseWindow(current, windowId);
-      setFocusedWindowId((focused) => {
-        if (focused !== windowId) {
-          return focused;
-        }
-        const visible = next.filter((window) => !window.isMinimised);
-        return getTopWindowId(visible);
+    if (minimiseTimersRef.current[windowId]) {
+      return;
+    }
+
+    setMinimisingWindowIds((current) => (current.includes(windowId) ? current : [...current, windowId]));
+
+    minimiseTimersRef.current[windowId] = window.setTimeout(() => {
+      setWindows((current) => {
+        const next = minimiseWindow(current, windowId);
+        setFocusedWindowId((focused) => {
+          if (focused !== windowId) {
+            return focused;
+          }
+          const visible = next.filter((window) => !window.isMinimised);
+          return getTopWindowId(visible);
+        });
+        return next;
       });
-      return next;
-    });
+      setMinimisingWindowIds((current) => current.filter((id) => id !== windowId));
+      delete minimiseTimersRef.current[windowId];
+    }, 280);
   }, []);
 
   const startWindowDrag = useCallback(
@@ -681,13 +714,7 @@ export default function HomePage() {
         if (!focusedWindowId) {
           return;
         }
-
-        setWindows((current) => {
-          const next = minimiseWindow(current, focusedWindowId);
-          const remaining = next.filter((window) => !window.isMinimised);
-          setFocusedWindowId(getTopWindowId(remaining));
-          return next;
-        });
+        minimiseById(focusedWindowId);
         return;
       }
 
@@ -712,7 +739,7 @@ export default function HomePage() {
         setFocusedWindowId(action.windowId);
       }
     },
-    [closeById, focusedWindowId, isMobile, openWindowForApp, uiScale, workspace]
+    [closeById, focusedWindowId, isMobile, minimiseById, openWindowForApp, uiScale, workspace]
   );
 
   const setKnightSession = useCallback(() => {
@@ -763,68 +790,84 @@ export default function HomePage() {
   if (systemStage === 'boot') {
     return (
       <main className="relative min-h-dvh overflow-hidden bg-black text-[#d8d8d8]">
-        <section className="absolute inset-0 p-5 sm:p-6">
-          <div className="mx-auto h-full w-full max-w-[980px] rounded-[8px] border border-border/60 bg-black/85 p-4 font-machine leading-6 sm:text-sm">
-            {bootPhase === 'post' ? (
-              <div className="relative h-full">
-                <div className="absolute right-0 top-0 hidden text-right sm:block">
-                  <Image src="/chamber-star.svg" alt="Chamber Star" width={180} height={64} className="h-auto w-[180px] opacity-90" />
-                  <p className="mt-1 font-machine uppercase tracking-[0.12em] text-[#b8b8b8]">certified resident build</p>
-                </div>
-                <div className="space-y-1 sm:pr-56">
-                  {POST_LINES.map((line) => (
-                    <p key={line}>{line}</p>
-                  ))}
-                </div>
+        <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.025)_1px,transparent_1px)] [background-size:100%_24px,24px_100%]" />
+        <section className="absolute inset-0 p-4 sm:p-7">
+          <div className="mx-auto grid h-full w-full max-w-[1080px] grid-rows-[auto_minmax(0,1fr)_auto] border-y border-[#404044] font-machine">
+            <header className="flex items-start justify-between gap-4 border-b border-[#27272a] py-3">
+              <Image src="/chamber-star.svg" alt="Chamber Star" width={210} height={75} className="h-auto w-[150px] opacity-90 sm:w-[190px]" priority />
+              <div className="grid grid-cols-2 gap-x-5 text-right text-[11px] uppercase leading-5 tracking-[0.08em] text-[#7f7f84]">
+                <span>node</span><span className="text-[#c9c9c9]">chmbr-077</span>
+                <span>build</span><span className="text-[#c9c9c9]">0206.314</span>
+                <span>clock</span><span className="text-[#c9c9c9]">02:17:13</span>
               </div>
-            ) : null}
+            </header>
 
-            {bootPhase === 'manager' ? (
-              <div className="space-y-1">
-                <p>CHAMBER BOOT MANAGER</p>
-                <p>ChamberOS v0.2 (build 0206.314)</p>
-                <p>Default: RESIDENT</p>
-                <p>Booting in: {managerCountdown}...</p>
-              </div>
-            ) : null}
+            <div className="grid min-h-0 grid-cols-1 gap-8 py-6 md:grid-cols-[minmax(0,1.45fr)_minmax(220px,.55fr)] md:py-10">
+              <div className="min-h-0 overflow-hidden text-[13px] leading-6 text-[#c7c7c7]">
+                <p className="mb-5 text-[11px] uppercase tracking-[0.18em] text-[#717176]">resident boot ledger / {bootPhase}</p>
 
-            {bootPhase === 'loader' ? (
-              <div className="space-y-4">
-                <div className="flex justify-center">
-                  <Image src="/chamber-star.svg" alt="Chamber Star loader mark" width={220} height={78} className="h-auto w-[220px] opacity-75" />
-                </div>
-                <div className="space-y-1">
-                  {LOADER_LINES.slice(0, loaderVisibleCount).map((line) => (
-                    <p key={line}>{line}</p>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+                {bootPhase === 'post' ? (
+                  <div className="space-y-0.5">
+                    {POST_LINES.map((line) => <p key={line}>{line}</p>)}
+                  </div>
+                ) : null}
 
-            {bootPhase === 'handoff' ? (
-              <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-                <span className="h-7 w-7 animate-spin rounded-full border-2 border-border border-t-text" />
-                <p className="animate-pulse tracking-[0.08em] text-[#e7e7e7]">DESKTOP_APPEARS</p>
-              </div>
-            ) : null}
-          </div>
+                {bootPhase === 'manager' ? (
+                  <div className="space-y-1">
+                    <p>CHAMBER BOOT MANAGER</p>
+                    <p>default volume........ RESIDENT</p>
+                    <p>archive mount......... READ / WRITE</p>
+                    <p>handoff in............ {managerCountdown}</p>
+                  </div>
+                ) : null}
 
-          <div className="pointer-events-none fixed inset-x-5 bottom-6 sm:inset-x-6">
-            <div className="mx-auto max-w-[980px]">
-              <div className="mb-2 flex justify-end">
-                <button
-                  type="button"
-                  onClick={completeBoot}
-                  aria-label="Skip simulated boot and continue to login"
-                  className="pointer-events-auto min-h-11 max-w-full rounded border border-border/60 bg-black/85 px-3 font-machine tracking-[0.08em] text-[#b8b8b8] hover:border-accent hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                >
-                  SKIP BOOT →
-                </button>
+                {bootPhase === 'loader' ? (
+                  <div className="space-y-1">
+                    {LOADER_LINES.slice(0, loaderVisibleCount).map((line, index) => (
+                      <p key={line}><span className="mr-3 text-[#66666b]">{String(index + 1).padStart(2, '0')}</span>{line}</p>
+                    ))}
+                  </div>
+                ) : null}
+
+                {bootPhase === 'handoff' ? (
+                  <div className="flex items-center gap-3">
+                    <span className="grid grid-cols-3 gap-1" aria-hidden="true">
+                      {[0, 1, 2].map((index) => <span key={index} className="h-2 w-2 animate-pulse bg-[#d8d8d8]" style={{ animationDelay: `${index * 120}ms` }} />)}
+                    </span>
+                    <p className="tracking-[0.12em] text-[#e7e7e7]">PASSING CONTROL TO RESIDENT SHELL</p>
+                  </div>
+                ) : null}
               </div>
-              <div className="h-[2px] w-full overflow-hidden rounded bg-border/80">
-                <div className="h-full bg-text transition-[width] duration-75 ease-linear" style={{ width: `${Math.round(bootProgress * 100)}%` }} />
-              </div>
+
+              <aside className="border-l border-[#27272a] pl-5 text-[11px] uppercase leading-6 tracking-[0.08em] text-[#737378]">
+                <p className="text-[#b5b5b8]">machine notes</p>
+                <p className="mt-3">signal........ 2/3</p>
+                <p>salt geometry. stable</p>
+                <p>kaknet relay... intermittent</p>
+                <p>queue token.... 17B</p>
+                <p>time drift..... +00:43</p>
+                <p className="mt-5 text-[#929297]">no metrics / no masters</p>
+              </aside>
             </div>
+
+            <footer className="grid grid-cols-[1fr_auto] items-end gap-4 border-t border-[#27272a] py-3">
+              <div>
+                <div className="mb-2 flex justify-between text-[10px] uppercase tracking-[0.12em] text-[#68686d]">
+                  <span>memory scan</span><span>{Math.round(bootProgress * 100)}%</span>
+                </div>
+                <div className="h-[3px] overflow-hidden bg-[#242427]">
+                  <div className="h-full bg-[#d6d6d2] transition-[width] duration-75 ease-linear" style={{ width: `${Math.round(bootProgress * 100)}%` }} />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={completeBoot}
+                aria-label="Skip simulated boot and continue to login"
+                className="min-h-10 border border-[#404044] px-3 text-[11px] uppercase tracking-[0.1em] text-[#a7a7aa] hover:border-[#d6d6d2] hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white"
+              >
+                skip / enter
+              </button>
+            </footer>
           </div>
         </section>
       </main>
@@ -834,30 +877,49 @@ export default function HomePage() {
   if (systemStage === 'login') {
     return (
       <main className="relative min-h-dvh overflow-hidden bg-[#070708] text-text">
-        <section className="absolute inset-0 flex items-center justify-center p-4">
-          <div className="w-full max-w-[560px] rounded-[12px] border border-border bg-[#0d0d0f] p-4 sm:p-5">
-            <div className="flex items-center gap-3 border-b border-border pb-4">
-              <span
-                className={cn(
-                  'inline-flex h-12 w-12 items-center justify-center rounded-full border border-border text-sm font-medium',
-                  selectedAccount.status === 'banned' ? 'text-[#ff5f57]' : 'text-text'
-                )}
-              >
-                {selectedAccount.id.slice(0, 2).toUpperCase()}
-              </span>
-              <div>
-                <p className="text-xl font-medium text-text">{selectedAccount.id}</p>
-                <p className="text-xs uppercase tracking-[0.08em] text-muted">{selectedAccount.summary}</p>
+        <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,.035)_1px,transparent_1px)] [background-size:100%_24px]" />
+        <section className="absolute inset-0 flex items-center justify-center p-4 sm:p-7">
+          <div className="w-full max-w-[900px] border-y border-[#414145] bg-black/40">
+            <header className="flex items-center justify-between gap-4 border-b border-[#29292c] py-3">
+              <Image src="/chamber-star.svg" alt="Chamber Star" width={210} height={75} className="h-auto w-[150px] opacity-90 sm:w-[190px]" priority />
+              <div className="text-right font-machine text-[10px] uppercase leading-5 tracking-[0.1em] text-[#707075]">
+                <p>resident shell // 02:17</p>
+                <p>node chmbr-077 // signal 2</p>
               </div>
-            </div>
+            </header>
 
-            <div className="space-y-3 py-4">
+            <div className="grid md:grid-cols-[1.2fr_.8fr]">
+              <section className="min-h-[360px] border-b border-[#29292c] py-6 md:border-b-0 md:border-r md:pr-8">
+                <p className="font-lore text-[24px] tracking-[0.035em] text-[#e5e3dd]">welcome, {selectedAccount.id}</p>
+                <p className="mt-1 font-machine text-[11px] uppercase tracking-[0.1em] text-[#77777c]">select identity / confirm passage</p>
+
+                <div className="mt-9 flex items-start gap-5">
+                  <span
+                    className={cn(
+                      'inline-flex h-[72px] w-[72px] shrink-0 items-center justify-center border border-[#45454a] font-machine text-base',
+                      selectedAccount.status === 'banned' ? 'text-[#ff7770]' : 'text-[#ededeb]'
+                    )}
+                  >
+                    {selectedAccount.id.slice(0, 2).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-base text-text">{selectedAccount.id}</p>
+                    <p className="mt-1 font-machine text-[11px] uppercase tracking-[0.08em] text-muted">{selectedAccount.summary}</p>
+                    <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-5 font-machine text-[11px] uppercase leading-6 tracking-[0.06em] text-[#6f6f74]">
+                      <dt>session</dt><dd className="text-[#b8b8bb]">temporary</dd>
+                      <dt>clearance</dt><dd className="text-[#b8b8bb]">threshold</dd>
+                      <dt>archive</dt><dd className="text-[#b8b8bb]">read only</dd>
+                    </dl>
+                  </div>
+                </div>
+
+                <div className="mt-8 max-w-md space-y-3">
               {selectedAccount.status === 'available' ? (
                 <>
-                  <Button type="button" className="w-full" onClick={setKnightSession}>
-                    Log In
+                  <Button type="button" className="w-full rounded-none" onClick={setKnightSession}>
+                    Enter ChamberOS
                   </Button>
-                  <p className="text-xs text-muted">visitor access</p>
+                  <p className="font-machine text-[11px] text-muted">No password required for visitor passage.</p>
                 </>
               ) : null}
 
@@ -874,9 +936,9 @@ export default function HomePage() {
                       }
                     }}
                     placeholder="Password"
-                    className="h-11 w-full rounded-md border border-border bg-black/30 px-3 text-sm text-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    className="h-11 w-full rounded-none border border-border bg-black/30 px-3 text-sm text-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
                   />
-                  <Button type="button" className="w-full" onClick={handleLockedAttempt}>
+                  <Button type="button" className="w-full rounded-none" onClick={handleLockedAttempt}>
                     Unlock
                   </Button>
                   <p className="min-h-5 text-xs text-[#ff7f7f]">{loginError}</p>
@@ -884,15 +946,16 @@ export default function HomePage() {
               ) : null}
 
               {selectedAccount.status === 'banned' ? (
-                <p className="rounded-md border border-[#ff5f57]/55 bg-[#ff5f57]/10 px-3 py-2 text-sm text-[#ff9d9d]">
+                <p className="border border-[#ff5f57]/55 bg-[#ff5f57]/10 px-3 py-2 text-sm text-[#ff9d9d]">
                   ACCOUNT DISABLED (BANNED)
                 </p>
               ) : null}
-            </div>
+                </div>
+              </section>
 
-            <div className="border-t border-border pt-4">
-              <p className="mb-3 text-xs uppercase tracking-[0.09em] text-muted">Profiles</p>
-              <div className="space-y-1.5">
+              <aside className="py-6 md:pl-8">
+              <p className="mb-4 font-machine text-[11px] uppercase tracking-[0.12em] text-muted">resident index</p>
+              <div className="border-t border-[#29292c]">
                 {LOGIN_ACCOUNTS.map((account) => (
                   <button
                     key={account.id}
@@ -903,8 +966,8 @@ export default function HomePage() {
                       setLoginError(account.status === 'banned' ? 'ACCOUNT DISABLED (BANNED)' : null);
                     }}
                     className={cn(
-                      'flex min-h-11 w-full items-center justify-between rounded-md px-3 text-left text-sm transition-colors duration-ui ease-calm',
-                      selectedAccountId === account.id ? 'bg-white/[0.08] text-text' : 'text-muted hover:bg-white/[0.05] hover:text-text'
+                      'flex min-h-12 w-full items-center justify-between border-b border-[#29292c] px-2 text-left text-sm transition-colors duration-ui ease-calm',
+                      selectedAccountId === account.id ? 'bg-white/[0.07] text-text' : 'text-muted hover:bg-white/[0.04] hover:text-text'
                     )}
                   >
                     <span>{account.id}</span>
@@ -915,16 +978,18 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
+              <p className="mt-5 font-machine text-[10px] uppercase leading-5 tracking-[0.08em] text-[#626267]">identity service nominal<br />last audit: never<br />loop count: 000</p>
+              </aside>
             </div>
 
-            <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-4">
+            <footer className="flex items-center justify-end gap-2 border-t border-[#29292c] py-3">
               <Button type="button" variant="ghost" size="sm" onClick={restartFromLogin}>
                 Restart
               </Button>
               <Button type="button" variant="ghost" size="sm" onClick={() => setLoginPassword('')}>
                 Shut down
               </Button>
-            </div>
+            </footer>
           </div>
         </section>
       </main>
@@ -942,7 +1007,7 @@ export default function HomePage() {
           {isMobile ? (
             <div
               hidden={hasMobileForeground}
-              className={cn('pointer-events-auto mb-3 max-w-[560px] grid-cols-2 gap-2', hasMobileForeground ? 'hidden' : 'grid')}
+              className={cn('pointer-events-auto mb-3 max-w-[620px] grid-cols-2 gap-3', hasMobileForeground ? 'hidden' : 'grid')}
             >
               {DESKTOP_SHORTCUTS.map((shortcut) => (
                 <button
@@ -953,15 +1018,14 @@ export default function HomePage() {
                     openWindowForApp(shortcut.appId);
                   }}
                   className={cn(
-                    'group min-h-[96px] min-w-0 rounded-md bg-transparent px-3 py-2 text-left transition-colors duration-ui ease-calm',
+                    'group min-h-[118px] min-w-0 rounded-md bg-transparent px-3 py-3 text-left transition-colors duration-ui ease-calm',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                     selectedShortcutId === shortcut.id ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
                   )}
                   aria-label={`${shortcut.label}. ${shortcut.hint}`}
                 >
                   <ShortcutGlyph iconSrc={shortcut.iconSrc} />
-                  <span className="mt-2 block break-words text-sm leading-tight text-text">{shortcut.label}</span>
-                  <span className="mt-1 block break-words text-xs text-muted">{shortcut.hint}</span>
+                  <span className="mt-2 block break-words text-base leading-tight text-text">{shortcut.label}</span>
                 </button>
               ))}
             </div>
@@ -1014,8 +1078,7 @@ export default function HomePage() {
                       aria-label={`${shortcut.label}. ${shortcut.hint}`}
                     >
                       <ShortcutGlyph iconSrc={shortcut.iconSrc} />
-                      <span className="mt-2 block break-words text-sm leading-tight text-text">{shortcut.label}</span>
-                      <span className="mt-1 block break-words text-xs text-muted">{shortcut.hint}</span>
+                      <span className="mt-2 block break-words text-base leading-tight text-text">{shortcut.label}</span>
                     </button>
                   );
                 })}
@@ -1030,6 +1093,7 @@ export default function HomePage() {
             autoplayToken={autoplayToken}
             uiScale={uiScale}
             workspaceSize={workspace}
+            minimisingWindowIds={minimisingWindowIds}
             onOpenWindow={openWindowForApp}
             onPlayTrack={playTrack}
             onFocusWindow={focusById}
@@ -1039,25 +1103,26 @@ export default function HomePage() {
           />
         </div>
 
-        <footer className="chamber-taskbar fixed inset-x-0 bottom-0 z-40 border-t border-border bg-[#0a0a0b]/95 px-3 py-2">
-          <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-2">
-            <span className="text-xs uppercase tracking-[0.08em] text-muted">Minimised</span>
+        <footer className="chamber-taskbar fixed inset-x-0 bottom-0 z-40 border-t border-border bg-[#0a0a0b]/95 px-3 py-1.5">
+          <div className="mx-auto flex max-w-[1400px] items-center gap-2">
+            <span className="hidden font-machine text-[10px] uppercase tracking-[0.1em] text-muted sm:inline">CHMBR://TASKS</span>
             {minimisedWindows.length === 0 ? (
-              <span className="text-xs text-muted">none</span>
+              <span className="h-1.5 w-1.5 bg-[#3f3f43]" aria-label="No minimised windows" />
             ) : (
               minimisedWindows.map((window) => (
-                <Button
+                <button
                   key={window.id}
                   type="button"
-                  size="sm"
-                  variant="ghost"
+                  title={`Restore ${window.title}`}
+                  aria-label={`Restore ${window.title}`}
                   onClick={() => {
                     setWindows((current) => focusWindow(restoreWindow(current, window.id), window.id));
                     setFocusedWindowId(window.id);
                   }}
+                  className="chamber-task-tile inline-flex h-10 w-10 shrink-0 items-center justify-center border border-[#45454a] bg-[#111113] hover:border-[#d7d6d0] hover:bg-[#1b1b1e] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white"
                 >
-                  {window.title}
-                </Button>
+                  <Image src={getAppIconSrc(window.appId)} alt="" width={26} height={26} unoptimized className="h-[26px] w-[26px] object-contain" />
+                </button>
               ))
             )}
 

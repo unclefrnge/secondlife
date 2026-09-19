@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 interface OSWindowProps {
   window: ChamberWindow;
   focused: boolean;
+  minimising: boolean;
   mobile: boolean;
   uiScale: number;
   workspaceSize: { width: number; height: number };
@@ -24,6 +25,7 @@ function clamp(value: number, min: number, max: number): number {
 export function OSWindow({
   window,
   focused,
+  minimising,
   mobile,
   uiScale,
   workspaceSize,
@@ -34,6 +36,7 @@ export function OSWindow({
   children
 }: OSWindowProps) {
   const isListenWindow = window.appId === 'listen';
+  const isEdgeToEdgeWindow = isListenWindow || window.appId === 'text-quest';
   const scaledWidth = Math.min(Math.round(window.width * uiScale), Math.max(320, workspaceSize.width - 12));
   const scaledHeight = Math.min(Math.round(window.height * uiScale), Math.max(260, workspaceSize.height - 12));
   const left = clamp(window.x, 4, Math.max(4, workspaceSize.width - scaledWidth - 4));
@@ -48,7 +51,8 @@ export function OSWindow({
         className={cn(
           'pointer-events-auto h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-[10px] border bg-[#0d0d0f]',
           focused && !window.isMinimised ? 'flex' : 'hidden',
-          focused ? 'border-accent' : 'border-border'
+          focused ? 'border-accent' : 'border-border',
+          minimising ? 'chamber-window-minimising' : ''
         )}
         onPointerDown={() => onFocus(window.id)}
       >
@@ -75,7 +79,14 @@ export function OSWindow({
             </Button>
           </div>
         </header>
-        <div className={cn('min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden', isListenWindow ? 'p-0' : 'p-3')}>{children}</div>
+        <div
+          className={cn(
+            'min-h-0 min-w-0 flex-1 overflow-x-hidden',
+            isEdgeToEdgeWindow ? 'overflow-hidden p-0' : 'overflow-y-auto p-3'
+          )}
+        >
+          {children}
+        </div>
       </section>
     );
   }
@@ -85,8 +96,9 @@ export function OSWindow({
       role="dialog"
       aria-label={window.title}
       className={cn(
-        'pointer-events-auto absolute overflow-hidden rounded-[10px] border bg-[#0d0d0f] shadow-[0_10px_20px_rgba(0,0,0,0.35)]',
-        focused ? 'border-accent' : 'border-border'
+        'pointer-events-auto absolute overflow-hidden rounded-[10px] border bg-[#0d0d0f] shadow-[0_10px_20px_rgba(0,0,0,0.35)] animate-window-pop',
+        focused ? 'border-accent' : 'border-border',
+        minimising ? 'chamber-window-minimising' : ''
       )}
       onMouseDown={() => onFocus(window.id)}
       style={{
@@ -125,7 +137,14 @@ export function OSWindow({
         </div>
       </header>
 
-      <div className={cn('h-[calc(100%-2.5rem)] overflow-auto', isListenWindow ? 'p-0' : 'p-3')}>{children}</div>
+      <div
+        className={cn(
+          'h-[calc(100%-2.5rem)]',
+          isEdgeToEdgeWindow ? 'overflow-hidden p-0' : 'overflow-auto p-3'
+        )}
+      >
+        {children}
+      </div>
     </section>
   );
 }

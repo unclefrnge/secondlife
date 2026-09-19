@@ -112,11 +112,11 @@ export function TopBar({ windows, focusedWindowId, onAction }: TopBarProps) {
                 className="inline-flex min-h-9 items-center rounded-md px-2 transition-colors duration-ui ease-calm hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <Image
-                  src="/chamber-logo.svg"
-                  alt="Chamber logo"
-                  width={22}
-                  height={14}
-                  className="h-3.5 w-auto [filter:brightness(0)_invert(1)]"
+                  src="/chamber-star.svg"
+                  alt="Chamber Star"
+                  width={78}
+                  height={28}
+                  className="h-6 w-auto"
                   priority
                 />
               </button>
@@ -126,7 +126,7 @@ export function TopBar({ windows, focusedWindowId, onAction }: TopBarProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <span className="text-sm font-identity text-text">ChamberOS</span>
+          <span className="text-sm font-identity text-text">OS</span>
 
           <Separator orientation="vertical" className="mx-1 h-4" />
 
