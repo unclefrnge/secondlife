@@ -12,8 +12,16 @@
 }
 
 @font-face {
-  font-family: 'Chamber Pixelspace';
-  src: url('/fonts/Pixelspace-Regular.woff2') format('woff2');
+  font-family: 'Chamber GothicByte';
+  src: url('/fonts/GothicByte.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Chamber Old English Gothic Pixel';
+  src: url('/fonts/OldEnglishGothicPixel-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -28,9 +36,16 @@
     font-size: 20px;
   }
   .font-identity { font-family: var(--font-identity); font-weight: 400; }
+  .font-lore, .font-lore-pixel {
+    font-weight: 400;
+    font-kerning: none;
+    font-variant-ligatures: none;
+  }
+  .font-lore { font-family: var(--font-lore); }
+  .font-lore-pixel { font-family: var(--font-lore-pixel); }
   .font-mono, .font-machine {
     font-family: var(--font-machine);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 400;
     font-kerning: none;
     font-variant-ligatures: none;
@@ -38,7 +53,7 @@
   }
   .font-machine :is(.text-xs, .text-sm, span) {
     font-family: inherit;
-    font-size: 14px;
+    font-size: 13px;
   }
 }
 
@@ -58,7 +73,9 @@
 
   --font-sans: 'R95 Sans Serif 8pt', sans-serif;
   --font-identity: 'Chamber Sysfont', sans-serif;
-  --font-machine: 'Chamber Pixelspace', monospace;
+  --font-machine: 'R95 Sans Serif 8pt', sans-serif;
+  --font-lore: 'Chamber GothicByte', 'Chamber Sysfont', sans-serif;
+  --font-lore-pixel: 'Chamber Old English Gothic Pixel', 'Chamber Sysfont', sans-serif;
 }
 
 * {

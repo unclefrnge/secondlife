@@ -14,7 +14,7 @@ export function LoreMap() {
   return (
     <section className="space-y-3">
       <header>
-        <h2 className="text-base font-medium text-text">Lore Map</h2>
+        <h2 className="font-lore text-xl tracking-[0.04em] text-text">Lore Map</h2>
         <p className="text-xs text-muted">Topography index (ASCII draft).</p>
       </header>
 

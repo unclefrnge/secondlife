@@ -1266,7 +1266,7 @@ export default function ChamberTextQuestPage() {
                     className="rounded-[6px] border border-[#2b3f2d]"
                   />
                   <div>
-                    <p className="font-identity text-sm text-[#8df29a]">Chamber Text Quest</p>
+                    <p className="font-lore text-xl tracking-[0.04em] text-[#8df29a]">Chamber Text Quest</p>
                     <p className="font-machine text-[#6ea775]">canon scene build</p>
                   </div>
                 </div>
@@ -1326,12 +1326,15 @@ export default function ChamberTextQuestPage() {
           )}
         >
           <section className="grid h-full min-h-0 min-w-0 grid-cols-1 grid-rows-[auto_minmax(0,1fr)_auto] gap-2">
-            <div className="flex items-center justify-between gap-3 border border-[#2b3f2d] bg-black/45 px-2 py-1 font-machine text-[#7dcf89]">
-              <p className="min-w-0 flex-1 truncate">{scene.title}</p>
-              <p className="shrink-0 text-[#67a96f]">{isTypingSceneText ? 'writing...' : `choices: ${visibleChoices.length}`}</p>
+            <div className="flex items-center justify-between gap-3 border border-[#2b3f2d] bg-black/45 px-3 py-2 text-[#7dcf89]">
+              <p className="font-lore min-w-0 flex-1 truncate text-xl tracking-[0.03em]">{scene.title}</p>
+              <p className="font-machine shrink-0 text-[#67a96f]">{isTypingSceneText ? 'writing...' : `choices: ${visibleChoices.length}`}</p>
             </div>
 
-            <div className="relative min-h-0 min-w-0 overflow-y-auto overscroll-y-contain rounded-[4px] border border-[#2b3f2d] bg-[#050706] px-3 py-3 pr-2 font-machine leading-6">
+            <div
+              key={state.sceneId}
+              className="relative min-h-0 min-w-0 overflow-y-auto overscroll-y-contain rounded-[4px] border border-[#2b3f2d] bg-[#050706] px-3 py-3 pr-2 font-machine leading-6 [overflow-anchor:none] [scrollbar-gutter:stable]"
+            >
               <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 opacity-15"
@@ -1341,18 +1344,29 @@ export default function ChamberTextQuestPage() {
                 }}
               />
 
-              {visibleOutcome ? (
-                <p className="relative mb-3 whitespace-pre-wrap italic text-[#89d994]">{visibleOutcome}</p>
-              ) : null}
+              <div className="relative min-h-full">
+                <div aria-hidden="true" className="invisible">
+                  {visibleOutcome ? (
+                    <p className="mb-3 whitespace-pre-wrap italic text-[#89d994]">{visibleOutcome}</p>
+                  ) : null}
+                  <p className="whitespace-pre-line font-machine leading-7 sm:leading-8">{sceneText}</p>
+                </div>
 
-              <p className="relative whitespace-pre-line font-machine leading-7 text-[#b8f3bf] sm:leading-8">
-                {displayedSceneText}
-                {isTypingSceneText ? <span className="ml-0.5 inline-block animate-pulse text-[#8ed596]">|</span> : null}
-              </p>
+                <div className="absolute inset-0">
+                  {visibleOutcome ? (
+                    <p className="mb-3 whitespace-pre-wrap italic text-[#89d994]">{visibleOutcome}</p>
+                  ) : null}
+
+                  <p className="whitespace-pre-line font-machine leading-7 text-[#b8f3bf] sm:leading-8">
+                    {displayedSceneText}
+                    {isTypingSceneText ? <span className="ml-0.5 inline-block animate-pulse text-[#8ed596]">|</span> : null}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="grid min-w-0 shrink-0 grid-cols-1 gap-2 rounded-[4px] border border-[#2b3f2d] bg-[#070f0a] px-3 py-2">
-              <p className="font-machine uppercase tracking-[0.1em] text-[#6ea775]">Choose</p>
+              <p className="font-lore-pixel text-base tracking-[0.04em] text-[#6ea775]">Choose</p>
               <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
                 {visibleChoices.map((choice, index) => (
                   <Button
@@ -1443,7 +1457,7 @@ export default function ChamberTextQuestPage() {
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#a3aba4]">System Alert</p>
-                <DialogTitle className="mt-1 font-mono text-2xl uppercase tracking-wide text-[#f3f3f3]">YOU WON!</DialogTitle>
+                <DialogTitle className="font-lore mt-1 text-2xl tracking-[0.05em] text-[#f3f3f3]">You Won!</DialogTitle>
               </div>
               <p className="animate-pulse font-mono text-xl leading-none text-[#f3f3f3]">!!</p>
             </div>

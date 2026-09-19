@@ -2,7 +2,7 @@ export function ChamberTextQuest() {
   return (
     <section className="space-y-3">
       <header>
-        <h2 className="text-base font-medium text-text">Chamber Text Quest</h2>
+        <h2 className="font-lore text-xl tracking-[0.04em] text-text">Chamber Text Quest</h2>
         <p className="text-xs text-muted">Runs in-window. No external browser tab.</p>
       </header>
 

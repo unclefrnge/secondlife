@@ -8,7 +8,7 @@ export function AboutChamberOS() {
       <header>
         <h2 className="font-identity text-base">About ChamberOS</h2>
         <p className="font-machine mt-1 text-muted">WEBOS BUILD 0002 · DMZ</p>
-        <p className="mt-1 text-muted">Three voices. One haunted cache.</p>
+        <p className="mt-1 text-muted">Two system voices. Two lore voices. One haunted cache.</p>
       </header>
       <Separator />
       <section className="space-y-1" aria-labelledby="credit-r95">
@@ -27,14 +27,18 @@ export function AboutChamberOS() {
         <a className={creditLink} href="https://nowintime.itch.io/macintosh-sysfont-chicago-pixel-art-gameboy-font" target="_blank" rel="noreferrer">NOW IN TIME / Macintosh Sysfont Chicago</a>
       </section>
       <Separator />
-      <section className="space-y-1" aria-labelledby="credit-pixelspace">
-        <h3 id="credit-pixelspace" className="font-machine">Pixelspace</h3>
-        <p>Set in Pixelspace, a 5×7 pixel typeface by Kumar Anirudha.</p>
-        <p className="text-muted">Licensed under the <a className={creditLink} href="/fonts/Pixelspace-OFL.txt" target="_blank" rel="noreferrer">SIL Open Font License 1.1</a>.</p>
-        <p className="flex flex-wrap gap-x-3 gap-y-1">
-          <a className={creditLink} href="https://pixelspace.anirudha.dev" target="_blank" rel="noreferrer">pixelspace.anirudha.dev</a>
-          <a className={creditLink} href="https://github.com/anistark/pixelspace" target="_blank" rel="noreferrer">anistark / pixelspace</a>
-        </p>
+      <section className="space-y-1" aria-labelledby="credit-gothicbyte">
+        <h3 id="credit-gothicbyte" className="font-lore text-xl">GothicByte</h3>
+        <p>Display typeface by Igor Ovsyannykov / HipFonts.</p>
+        <p className="text-muted">Credited use for this non-commercial personal project. Commercial use requires an appropriate HipFonts license.</p>
+        <a className={creditLink} href="https://hipfonts.gumroad.com/l/ExtendedCommericalUseLicense" target="_blank" rel="noreferrer">HipFonts commercial license</a>
+      </section>
+      <Separator />
+      <section className="space-y-1" aria-labelledby="credit-old-english-pixel">
+        <h3 id="credit-old-english-pixel" className="font-lore-pixel text-base">Old English Gothic Pixel</h3>
+        <p>Pixel blackletter by ColorSwitchFan25.</p>
+        <p className="text-muted">Licensed under the <a className={creditLink} href="/fonts/OldEnglishGothicPixel-OFL.txt" target="_blank" rel="noreferrer">SIL Open Font License 1.1</a>.</p>
+        <a className={creditLink} href="https://fontstruct.com/fontstructions/show/1535174/old-english-gothic-pixel" target="_blank" rel="noreferrer">Old English Gothic Pixel on FontStruct</a>
       </section>
     </section>
   );

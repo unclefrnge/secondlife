@@ -16,7 +16,7 @@ interface AppendixSheetProps {
 function SectionList({ title, entries }: { title: string; entries: string[] }) {
   return (
     <section className="space-y-2 rounded-md border border-border bg-black/25 p-3">
-      <h3 className="text-xs uppercase tracking-[0.12em] text-muted">{title}</h3>
+      <h3 className="font-lore-pixel text-base tracking-[0.04em] text-muted">{title}</h3>
       {entries.length ? (
         <ul className="space-y-1 text-sm text-text">
           {entries.map((entry) => (
@@ -42,7 +42,7 @@ export function AppendixSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full max-w-xl space-y-4 overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Appendix // Chamber Codex</SheetTitle>
+          <SheetTitle className="font-lore text-xl tracking-[0.04em]">Appendix // Chamber Codex</SheetTitle>
           <SheetDescription>
             {unlocked
               ? 'Discovered entries from this run and prior loops.'
@@ -59,7 +59,7 @@ export function AppendixSheet({
 
               return (
                 <li key={track.id} className="rounded border border-border bg-black/20 p-2">
-                  <p className="text-text">{track.title}</p>
+                  <p className="font-lore-pixel text-base tracking-[0.03em] text-text">{track.title}</p>
                   <p className="text-xs text-muted">{track.summary}</p>
                   <p className="pt-1 text-xs text-muted">
                     {isCompleted ? 'completed' : isOpened ? 'opened' : 'sealed'}
