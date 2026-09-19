@@ -1,4 +1,4 @@
-import { type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 
 import { Button } from '@/components/ui/button';
 import type { ChamberWindow } from '@/lib/windowStore';
@@ -41,6 +41,8 @@ export function OSWindow({
   const scaledHeight = Math.min(Math.round(window.height * uiScale), Math.max(260, workspaceSize.height - 12));
   const left = clamp(window.x, 4, Math.max(4, workspaceSize.width - scaledWidth - 4));
   const top = clamp(window.y, 4, Math.max(4, workspaceSize.height - scaledHeight - 4));
+  const minimiseX = Math.round(workspaceSize.width / 2 - (left + scaledWidth / 2));
+  const minimiseY = Math.round(workspaceSize.height - (top + scaledHeight / 2));
 
   if (mobile) {
     return (
@@ -54,6 +56,7 @@ export function OSWindow({
           focused ? 'border-accent' : 'border-border',
           minimising ? 'chamber-window-minimising' : ''
         )}
+        style={{ '--chamber-minimise-x': '0px', '--chamber-minimise-y': '65vh' } as CSSProperties}
         onPointerDown={() => onFocus(window.id)}
       >
         <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-black/35 px-3 py-2">
@@ -106,8 +109,10 @@ export function OSWindow({
         top,
         width: scaledWidth,
         height: scaledHeight,
-        zIndex: window.zIndex
-      }}
+        zIndex: window.zIndex,
+        '--chamber-minimise-x': `${minimiseX}px`,
+        '--chamber-minimise-y': `${minimiseY}px`
+      } as CSSProperties}
     >
       <header
         className="flex h-10 cursor-move select-none items-center justify-between border-b border-border bg-black/35 px-3"

@@ -33,6 +33,7 @@ interface TopBarProps {
   windows: ChamberWindow[];
   focusedWindowId: string | null;
   onAction: (action: TopBarAction) => void;
+  onLogout: () => void;
 }
 
 function MenuList({ entries, onAction }: { entries: MenuEntry[]; onAction: (action: TopBarAction) => void }) {
@@ -54,7 +55,7 @@ function MenuList({ entries, onAction }: { entries: MenuEntry[]; onAction: (acti
   );
 }
 
-export function TopBar({ windows, focusedWindowId, onAction }: TopBarProps) {
+export function TopBar({ windows, focusedWindowId, onAction, onLogout }: TopBarProps) {
   const [patchNotesOpen, setPatchNotesOpen] = useState(false);
   const [quitOpen, setQuitOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -112,21 +113,23 @@ export function TopBar({ windows, focusedWindowId, onAction }: TopBarProps) {
                 className="inline-flex min-h-9 items-center rounded-md px-2 transition-colors duration-ui ease-calm hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <Image
-                  src="/chamber-star.svg"
-                  alt="Chamber Star"
-                  width={78}
-                  height={28}
-                  className="h-6 w-auto"
+                  src="/chamber-logo.svg"
+                  alt="Chamber Collective"
+                  width={34}
+                  height={18}
+                  className="h-[18px] w-[34px] [filter:brightness(0)_invert(1)]"
                   priority
                 />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <MenuList entries={systemMenuItems} onAction={handleAction} />
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onLogout}>Log Out Knight</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <span className="text-sm font-identity text-text">OS</span>
+          <span className="text-sm font-identity text-text">ChamberOS</span>
 
           <Separator orientation="vertical" className="mx-1 h-4" />
 

@@ -190,13 +190,13 @@ a {
 
   74% {
     opacity: 0.55;
-    transform: translate3d(0, 45vh, 0) scale(0.38, 0.16);
+    transform: translate3d(var(--chamber-minimise-x, 0px), calc(var(--chamber-minimise-y, 70vh) - 12vh), 0) scale(0.38, 0.16);
     clip-path: inset(24% 6% 24% 6%);
   }
 
   100% {
     opacity: 0;
-    transform: translate3d(0, 72vh, 0) scale(0.08, 0.025);
+    transform: translate3d(var(--chamber-minimise-x, 0px), var(--chamber-minimise-y, 70vh), 0) scale(0.08, 0.025);
     clip-path: inset(46% 8% 46% 8%);
   }
 }

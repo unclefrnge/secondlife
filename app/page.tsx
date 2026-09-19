@@ -242,10 +242,10 @@ function statusDotClass(status: AccountStatus): string {
   return 'bg-[#febc2e]';
 }
 
-function ShortcutGlyph({ iconSrc }: { iconSrc: string }) {
+function ShortcutGlyph({ iconSrc, priority = false }: { iconSrc: string; priority?: boolean }) {
   return (
     <span aria-hidden="true" className="flex h-[68px] w-[68px] items-center justify-center">
-      <Image src={iconSrc} alt="" width={68} height={68} unoptimized className="h-[68px] w-[68px] object-contain" />
+      <Image src={iconSrc} alt="" width={68} height={68} unoptimized priority={priority} className="h-[68px] w-[68px] object-contain" />
     </span>
   );
 }
@@ -877,119 +877,105 @@ export default function HomePage() {
   if (systemStage === 'login') {
     return (
       <main className="relative min-h-dvh overflow-hidden bg-[#070708] text-text">
-        <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,.035)_1px,transparent_1px)] [background-size:100%_24px]" />
         <section className="absolute inset-0 flex items-center justify-center p-4 sm:p-7">
-          <div className="w-full max-w-[900px] border-y border-[#414145] bg-black/40">
-            <header className="flex items-center justify-between gap-4 border-b border-[#29292c] py-3">
-              <Image src="/chamber-star.svg" alt="Chamber Star" width={210} height={75} className="h-auto w-[150px] opacity-90 sm:w-[190px]" priority />
-              <div className="text-right font-machine text-[10px] uppercase leading-5 tracking-[0.1em] text-[#707075]">
-                <p>resident shell // 02:17</p>
-                <p>node chmbr-077 // signal 2</p>
+          <div className="w-full max-w-[660px] overflow-hidden rounded-[10px] border border-[#48484d] bg-[#0d0d0f] shadow-[0_18px_50px_rgba(0,0,0,.48)]">
+            <header className="flex h-11 items-center justify-between gap-3 border-b border-[#303034] bg-black/35 px-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <Image
+                  src="/chamber-logo.svg"
+                  alt="Chamber Collective"
+                  width={38}
+                  height={20}
+                  className="h-5 w-[38px] [filter:brightness(0)_invert(1)]"
+                  priority
+                />
+                <p className="truncate text-sm font-identity text-text">ChamberOS Login</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button type="button" variant="ghost" size="sm" onClick={restartFromLogin}>Restart</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setLoginPassword('')}>Shut down</Button>
               </div>
             </header>
 
-            <div className="grid md:grid-cols-[1.2fr_.8fr]">
-              <section className="min-h-[360px] border-b border-[#29292c] py-6 md:border-b-0 md:border-r md:pr-8">
-                <p className="font-lore text-[24px] tracking-[0.035em] text-[#e5e3dd]">welcome, {selectedAccount.id}</p>
-                <p className="mt-1 font-machine text-[11px] uppercase tracking-[0.1em] text-[#77777c]">select identity / confirm passage</p>
-
-                <div className="mt-9 flex items-start gap-5">
-                  <span
-                    className={cn(
-                      'inline-flex h-[72px] w-[72px] shrink-0 items-center justify-center border border-[#45454a] font-machine text-base',
-                      selectedAccount.status === 'banned' ? 'text-[#ff7770]' : 'text-[#ededeb]'
-                    )}
-                  >
-                    {selectedAccount.id.slice(0, 2).toUpperCase()}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-base text-text">{selectedAccount.id}</p>
-                    <p className="mt-1 font-machine text-[11px] uppercase tracking-[0.08em] text-muted">{selectedAccount.summary}</p>
-                    <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-5 font-machine text-[11px] uppercase leading-6 tracking-[0.06em] text-[#6f6f74]">
-                      <dt>session</dt><dd className="text-[#b8b8bb]">temporary</dd>
-                      <dt>clearance</dt><dd className="text-[#b8b8bb]">threshold</dd>
-                      <dt>archive</dt><dd className="text-[#b8b8bb]">read only</dd>
-                    </dl>
-                  </div>
-                </div>
-
-                <div className="mt-8 max-w-md space-y-3">
-              {selectedAccount.status === 'available' ? (
-                <>
-                  <Button type="button" className="w-full rounded-none" onClick={setKnightSession}>
-                    Enter ChamberOS
-                  </Button>
-                  <p className="font-machine text-[11px] text-muted">No password required for visitor passage.</p>
-                </>
-              ) : null}
-
-              {selectedAccount.status === 'locked' ? (
-                <>
-                  <input
-                    type="password"
-                    value={loginPassword}
-                    onChange={(event) => setLoginPassword(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        handleLockedAttempt();
-                      }
-                    }}
-                    placeholder="Password"
-                    className="h-11 w-full rounded-none border border-border bg-black/30 px-3 text-sm text-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
-                  />
-                  <Button type="button" className="w-full rounded-none" onClick={handleLockedAttempt}>
-                    Unlock
-                  </Button>
-                  <p className="min-h-5 text-xs text-[#ff7f7f]">{loginError}</p>
-                </>
-              ) : null}
-
-              {selectedAccount.status === 'banned' ? (
-                <p className="border border-[#ff5f57]/55 bg-[#ff5f57]/10 px-3 py-2 text-sm text-[#ff9d9d]">
-                  ACCOUNT DISABLED (BANNED)
+            <div className="flex min-h-[470px] flex-col px-5 py-6 sm:px-8">
+              <section className="flex min-h-[282px] flex-col items-center text-center">
+                <p className="text-base text-[#d7d7d5]">
+                  Welcome, <span className="font-lore text-[26px] tracking-[0.03em] text-[#f0eee8]">{selectedAccount.id}</span>
                 </p>
-              ) : null}
+
+                <span
+                  className={cn(
+                    'mt-6 inline-flex h-20 w-20 items-center justify-center rounded-full border border-[#4a4a4f] bg-black/25 font-machine text-base',
+                    selectedAccount.status === 'banned' ? 'text-[#ff7770]' : 'text-[#ededeb]'
+                  )}
+                >
+                  {selectedAccount.id.slice(0, 2).toUpperCase()}
+                </span>
+                <p className="mt-3 text-sm text-muted">{selectedAccount.summary}</p>
+
+                <div className="mt-5 flex min-h-[122px] w-full max-w-[360px] flex-col justify-start gap-2.5">
+                  {selectedAccount.status === 'available' ? (
+                    <>
+                      <Button type="button" className="w-full" onClick={setKnightSession}>Log in</Button>
+                      <p className="text-xs text-muted">Click Log in to continue.</p>
+                    </>
+                  ) : null}
+
+                  {selectedAccount.status === 'locked' ? (
+                    <>
+                      <input
+                        type="password"
+                        value={loginPassword}
+                        onChange={(event) => setLoginPassword(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            handleLockedAttempt();
+                          }
+                        }}
+                        placeholder="Password"
+                        className="h-10 w-full rounded-md border border-border bg-black/30 px-3 text-sm text-text placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      />
+                      <Button type="button" className="w-full" onClick={handleLockedAttempt}>Unlock</Button>
+                      <p className="min-h-4 text-xs text-[#ff7f7f]">{loginError}</p>
+                    </>
+                  ) : null}
+
+                  {selectedAccount.status === 'banned' ? (
+                    <p className="rounded-md border border-[#ff5f57]/55 bg-[#ff5f57]/10 px-3 py-3 text-sm text-[#ff9d9d]">Account disabled.</p>
+                  ) : null}
                 </div>
               </section>
 
-              <aside className="py-6 md:pl-8">
-              <p className="mb-4 font-machine text-[11px] uppercase tracking-[0.12em] text-muted">resident index</p>
-              <div className="border-t border-[#29292c]">
-                {LOGIN_ACCOUNTS.map((account) => (
-                  <button
-                    key={account.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedAccountId(account.id);
-                      setLoginPassword('');
-                      setLoginError(account.status === 'banned' ? 'ACCOUNT DISABLED (BANNED)' : null);
-                    }}
-                    className={cn(
-                      'flex min-h-12 w-full items-center justify-between border-b border-[#29292c] px-2 text-left text-sm transition-colors duration-ui ease-calm',
-                      selectedAccountId === account.id ? 'bg-white/[0.07] text-text' : 'text-muted hover:bg-white/[0.04] hover:text-text'
-                    )}
-                  >
-                    <span>{account.id}</span>
-                    <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.08em]">
-                      <span className={cn('h-2 w-2 rounded-full', statusDotClass(account.status))} />
-                      {account.status}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <p className="mt-5 font-machine text-[10px] uppercase leading-5 tracking-[0.08em] text-[#626267]">identity service nominal<br />last audit: never<br />loop count: 000</p>
-              </aside>
+              <section className="mt-auto border-t border-[#303034] pt-4">
+                <p className="mb-3 text-center text-xs text-muted">Linked accounts</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {LOGIN_ACCOUNTS.map((account) => (
+                    <button
+                      key={account.id}
+                      type="button"
+                      aria-label={`${account.id}, ${account.status}`}
+                      aria-pressed={selectedAccountId === account.id}
+                      onClick={() => {
+                        setSelectedAccountId(account.id);
+                        setLoginPassword('');
+                        setLoginError(account.status === 'banned' ? 'Account disabled.' : null);
+                      }}
+                      className={cn(
+                        'group flex min-w-0 flex-col items-center gap-1.5 rounded-md px-1 py-2 text-xs transition-colors duration-ui ease-calm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                        selectedAccountId === account.id ? 'bg-white/[0.08] text-text' : 'text-muted hover:bg-white/[0.04] hover:text-text'
+                      )}
+                    >
+                      <span className="relative inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#414146] bg-black/25 font-machine text-[11px]">
+                        {account.id.slice(0, 2).toUpperCase()}
+                        <span className={cn('absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[#0d0d0f]', statusDotClass(account.status))} />
+                      </span>
+                      <span className="w-full truncate text-center">{account.id}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
             </div>
-
-            <footer className="flex items-center justify-end gap-2 border-t border-[#29292c] py-3">
-              <Button type="button" variant="ghost" size="sm" onClick={restartFromLogin}>
-                Restart
-              </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setLoginPassword('')}>
-                Shut down
-              </Button>
-            </footer>
           </div>
         </section>
       </main>
@@ -998,7 +984,7 @@ export default function HomePage() {
 
   return (
     <main className="chamber-desktop min-h-dvh overflow-hidden bg-bg text-text">
-      <TopBar windows={windows} focusedWindowId={focusedWindowId} onAction={handleTopBarAction} />
+      <TopBar windows={windows} focusedWindowId={focusedWindowId} onAction={handleTopBarAction} onLogout={logoutToLogin} />
 
       <section className="chamber-workspace-layout relative h-[calc(100dvh-2.5rem)] pt-10">
         <div className="absolute inset-0 bg-[#0b0b0c]" />
@@ -1024,7 +1010,7 @@ export default function HomePage() {
                   )}
                   aria-label={`${shortcut.label}. ${shortcut.hint}`}
                 >
-                  <ShortcutGlyph iconSrc={shortcut.iconSrc} />
+                  <ShortcutGlyph iconSrc={shortcut.iconSrc} priority={shortcut.id === 'frnge'} />
                   <span className="mt-2 block break-words text-base leading-tight text-text">{shortcut.label}</span>
                 </button>
               ))}
@@ -1077,7 +1063,7 @@ export default function HomePage() {
                       )}
                       aria-label={`${shortcut.label}. ${shortcut.hint}`}
                     >
-                      <ShortcutGlyph iconSrc={shortcut.iconSrc} />
+                      <ShortcutGlyph iconSrc={shortcut.iconSrc} priority={shortcut.id === 'frnge'} />
                       <span className="mt-2 block break-words text-base leading-tight text-text">{shortcut.label}</span>
                     </button>
                   );
@@ -1103,12 +1089,9 @@ export default function HomePage() {
           />
         </div>
 
-        <footer className="chamber-taskbar fixed inset-x-0 bottom-0 z-40 border-t border-border bg-[#0a0a0b]/95 px-3 py-1.5">
-          <div className="mx-auto flex max-w-[1400px] items-center gap-2">
-            <span className="hidden font-machine text-[10px] uppercase tracking-[0.1em] text-muted sm:inline">CHMBR://TASKS</span>
-            {minimisedWindows.length === 0 ? (
-              <span className="h-1.5 w-1.5 bg-[#3f3f43]" aria-label="No minimised windows" />
-            ) : (
+        <footer className="chamber-taskbar fixed inset-x-0 bottom-0 z-40 min-h-[52px] border-t border-border bg-[#0a0a0b]/95 px-3 py-1.5">
+          <div className="mx-auto flex min-h-10 max-w-[1400px] items-center justify-center gap-2">
+            {minimisedWindows.length > 0 ? (
               minimisedWindows.map((window) => (
                 <button
                   key={window.id}
@@ -1124,12 +1107,7 @@ export default function HomePage() {
                   <Image src={getAppIconSrc(window.appId)} alt="" width={26} height={26} unoptimized className="h-[26px] w-[26px] object-contain" />
                 </button>
               ))
-            )}
-
-            <Button type="button" size="sm" variant="ghost" className="ml-auto" onClick={logoutToLogin}>
-              Log out
-            </Button>
-            <span className="text-xs text-muted">scale {Math.round(uiScale * 100)}%</span>
+            ) : null}
           </div>
         </footer>
       </section>
