@@ -125,7 +125,9 @@
 @media (max-width: 940px) {
   .desk[data-away='false'][data-expanded='false'] { grid-template-rows: auto auto; align-content: center; row-gap: 12px; }
   .desk[data-away='false'] .frame { grid-row: 1; }
-  .desk[data-away='false'] .gameShortcuts { position: static; display: flex; grid-row: 2; gap: 8px; }
+  .desk[data-away='false'] .gameShortcuts { position: static; display: flex; max-width: 100%; grid-row: 2; gap: 8px; }
+  .gameShortcuts button { min-width: 0; }
+  .gameShortcuts span { max-width: 100%; overflow-wrap: anywhere; }
   .desk[data-expanded='true'] .gameShortcuts { display: none; }
 }
 @media (max-height: 460px) and (max-width: 520px) {

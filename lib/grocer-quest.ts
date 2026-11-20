@@ -111,6 +111,14 @@ export const grocerScenes: Record<SceneId, Scene> = {
 
 const encounterId = 'gogos-till-01';
 export const TILL_SLIP = 'gogos-till-slip';
+export const tillSlip = {
+  name: 'till-slip.txt',
+  shop: 'GOGO’S GROCER',
+  item: 'BROWN LOAF',
+  quantity: '× 2',
+  note: 'Second item brought to till in an SD card case.',
+  closing: 'Please keep this slip.'
+} as const;
 type Progress = { scene: SceneId; hasSlip: boolean };
 const initial: Progress = { scene: 'counter', hasSlip: false };
 

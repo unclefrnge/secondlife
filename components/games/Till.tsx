@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { grocerScenes } from '@/lib/grocer-quest';
 import type { useChamberWorld } from '@/lib/hooks/use-chamber-world';
 import { ReceiptPaper } from './ReceiptPaper';
@@ -8,7 +8,7 @@ import styles from './games.module.css';
 
 export type TillProgress = Pick<ReturnType<typeof useChamberWorld>, 'ready' | 'grocer' | 'visitGrocer'>;
 
-export function Till({ ready, grocer, visitGrocer }: TillProgress) {
+export function Till({ ready, grocer, visitGrocer, children }: TillProgress & { children?: ReactNode }) {
   const scene = grocerScenes[grocer.scene];
   const heading = useRef<HTMLHeadingElement>(null);
   const played = useRef(false);
@@ -25,6 +25,7 @@ export function Till({ ready, grocer, visitGrocer }: TillProgress) {
       <h2 ref={heading} tabIndex={-1}>{scene.title}</h2>
       <p>{scene.text}</p>
     </ReceiptPaper>
+    {!scene.choices && grocer.hasSlip && children}
     <div className={styles.choices}>
       {scene.choices ? scene.choices.map(([label, next]) =>
         <button key={next} onClick={() => choose(next)}>{label}</button>

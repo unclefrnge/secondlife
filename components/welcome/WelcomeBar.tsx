@@ -8,7 +8,7 @@ import styles from './welcome-window.module.css';
 type Props = {
   away: boolean;
   onDesktop: () => void;
-  onSettings: (launcher: HTMLElement) => void;
+  onSettings: () => void;
 };
 
 export function WelcomeBar({ away, onDesktop, onSettings }: Props) {
@@ -50,7 +50,7 @@ export function WelcomeBar({ away, onDesktop, onSettings }: Props) {
           <button type="button" onClick={event => {
             const menu = event.currentTarget.closest('details')!;
             menu.open = false;
-            onSettings(menu.querySelector('summary')!);
+            onSettings();
           }}>system settings…</button>
           <a href="/desktop">resident login</a>
         </div>

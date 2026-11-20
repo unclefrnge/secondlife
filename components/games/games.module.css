@@ -46,6 +46,9 @@
 .receipt[data-paper='pink'] { --stock: #dfc7bb; }
 .receipt[data-paper='green'] { --stock: #c8d7b5; }
 .receipt[data-feed='instant'], .receipt[data-feed='instant'] p { animation: none; }
+.receipt .lineItem { display: flex; justify-content: space-between; gap: 1rem; margin: 1.2rem 0; font: 400 1.1rem/1.3 var(--font-identity); }
+.receipt .closing { margin-top: .85rem; }
+.delivery { margin: 0 0 .8rem; color: #cad4bc; font: 400 .9rem/1.4 var(--font-sans); }
 .stamp { display: table; margin: 1rem 0 0 auto; padding: 2px 5px; border: 1px solid #55634e; color: #42503d; font: 400 .77rem/1.1 var(--font-identity); text-transform: uppercase; }
 
 .gameBar { cursor: grab; touch-action: none; user-select: none; }
@@ -53,3 +56,24 @@
 .gameWindow[data-dragging='true'] { box-shadow: 7px 10px 0 #0d100b99; }
 .gameWindow[data-dragging='true'] .gameBar { cursor: grabbing; }
 @media (prefers-reduced-motion: no-preference) { .gameWindow { transition: box-shadow 140ms ease-out; } }
+
+@media print {
+  :global(html):has(.gameWindow[data-print-slip][open]),
+  :global(body):has(.gameWindow[data-print-slip][open]) { background: white; }
+  :global(main):has(> .gameWindow[data-print-slip][open]) {
+    display: block; background: white; min-height: 0; padding: 0; position: static;
+  }
+  :global(main):has(> .gameWindow[data-print-slip][open]) > :not(.gameWindow),
+  .gameWindow[data-print-slip] :is(.gameBar, .choices),
+  .gameWindow[data-print-slip]::backdrop { display: none; }
+  .gameWindow[data-print-slip][open] {
+    position: static; inset: auto; translate: none !important; width: 100%; max-width: none;
+    margin: 0 auto; padding: 0; max-height: none; overflow: visible; border: 0; box-shadow: none;
+    background: transparent; break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .gameWindow[data-print-slip] .till, .gameWindow[data-print-slip] .slot {
+    display: block; background: transparent; padding: 0; margin: 0; border: 0; box-shadow: none; overflow: visible;
+  }
+  .gameWindow[data-print-slip] .till { width: min(100%, 76mm); margin-inline: auto; }
+  .gameWindow[data-print-slip] .receipt, .gameWindow[data-print-slip] .receipt p { animation: none; }
+}

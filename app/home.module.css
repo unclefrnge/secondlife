@@ -16,7 +16,7 @@
   background: #191e17;
 }
 
-.bar, .bar span:first-child, .enter, .directory a {
+.bar, .bar span:first-child, .directory a {
   display: flex;
   align-items: center;
 }
@@ -67,30 +67,6 @@
 .sigil { margin-left: auto; color: var(--accent); font: 400 1.15rem/1 Georgia, serif; }
 
 .directory a:is(:hover, :focus-visible) { background: #252d21; }
-
-
-.enter {
-  justify-self: center;
-  justify-content: center;
-  gap: .75rem;
-  width: min(100%, 16rem);
-  min-height: 52px;
-  padding: .5rem 1rem;
-  border: 2px solid;
-  border-color: #e1e5cb #758069 #758069 #e1e5cb;
-  box-shadow: 1px 1px 0 #070a06;
-  background: #b9c3a2;
-  color: #1c2419;
-  font: 400 1.1rem/1.25 var(--font-identity);
-}
-
-.enter img { flex: none; image-rendering: pixelated; }
-.enter:is(:hover, :focus-visible) { background: #ccd6b6; }
-.enter:active {
-  border-color: #727b64 #d6dec1 #d6dec1 #727b64;
-  box-shadow: none;
-  padding: calc(.5rem + 1px) calc(1rem - 1px) calc(.5rem - 1px) calc(1rem + 1px);
-}
 
 .featured ul { display: grid; gap: .65rem; }
 .featured a {
@@ -154,5 +130,4 @@
   .content { gap: 1.25rem; }
   .directory ul { grid-template-columns: 1fr; }
   .directory a { min-height: 52px; }
-  .enter { width: 100%; }
 }

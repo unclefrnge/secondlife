@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
-import { desktopGames, type DesktopGame } from '@/lib/desktop-games';
+import { desktopGames } from '@/lib/desktop-games';
+import { TILL_SLIP, tillSlip } from '@/lib/grocer-quest';
+import { useChamberWorld } from '@/lib/hooks/use-chamber-world';
+import type { DeskApp } from './PublicDeskWindow';
 import shell from '@/app/home.module.css';
 import styles from './welcome-window.module.css';
 import { WelcomeBar } from './WelcomeBar';
@@ -13,18 +16,19 @@ import { useWindowDrag } from '@/lib/hooks/use-window-drag';
 const DeskWindow = dynamic(() => import('./PublicDeskWindow').then(module => module.PublicDeskWindow));
 
 type HiddenState = 'closed' | 'minimized';
-type DeskApp = DesktopGame | 'settings';
 
 function currentDeskApp(): DeskApp | null {
   const id = window.history.state?.frngeDeskApp;
-  return id === 'settings' || desktopGames.includes(id) ? id : null;
+  return id === 'settings' || id === TILL_SLIP || desktopGames.includes(id) ? id : null;
 }
 
 export function WelcomeWindow({ children }: { children: ReactNode }) {
   const [hidden, setHidden] = useState<HiddenState | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [app, setApp] = useState<DeskApp | null>(null);
-  const appLauncher = useRef<HTMLElement | null>(null);
+  const world = useChamberWorld();
+  const hasSlip = world.deliveredFileIds.includes(TILL_SLIP);
+  const appLauncher = useRef<DeskApp | null>(null);
   const dismissing = useRef(false);
   useEffect(() => {
     function syncApp() {
@@ -32,11 +36,15 @@ export function WelcomeWindow({ children }: { children: ReactNode }) {
       const id = currentDeskApp();
       setApp(id);
       if (id) {
-        appLauncher.current = document.querySelector<HTMLElement>(`[data-launch-app="${id}"]`);
+        appLauncher.current = id;
       } else if (appLauncher.current) {
         const launcher = appLauncher.current;
         appLauncher.current = null;
-        requestAnimationFrame(() => launcher.focus({ preventScroll: true }));
+        requestAnimationFrame(() => {
+          const button = document.querySelector<HTMLElement>(`[data-launch-app="${launcher}"]`)
+            ?? document.querySelector<HTMLElement>('[data-launch-app="till"]');
+          button?.focus({ preventScroll: true });
+        });
       }
     }
     syncApp();
@@ -44,10 +52,10 @@ export function WelcomeWindow({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('popstate', syncApp);
   }, []);
 
-  function launch(id: DeskApp, launcher: HTMLElement) {
+  function launch(id: DeskApp) {
     if (currentDeskApp()) return;
     window.history.pushState({ frngeDeskApp: id }, '');
-    appLauncher.current = launcher;
+    appLauncher.current = id;
     setApp(id);
   }
   function closeApp() {
@@ -55,6 +63,9 @@ export function WelcomeWindow({ children }: { children: ReactNode }) {
     dismissing.current = true;
     window.history.back();
   }
+  useEffect(() => {
+    if (app === TILL_SLIP && world.ready && !hasSlip) closeApp();
+  }, [app, world.ready, hasSlip]);
   const wantsFullscreen = useRef(false);
   const preferences = useDeskPreferences();
   const frame = useRef<HTMLDivElement>(null);
@@ -155,14 +166,18 @@ export function WelcomeWindow({ children }: { children: ReactNode }) {
       }}>skip to music</a>}
       <WallpaperCanvas scene={preferences.wallpaper} running={preferences.animate && !expanded && !app} />
       <WelcomeBar away={!!hidden} onDesktop={() => hidden ? openWelcome() : putAway('minimized')}
-        onSettings={anchor => launch('settings', anchor)} />
-      <nav className={styles.gameShortcuts} aria-label="Desktop games">
-        {desktopGames.map(id => <button key={id} data-launch-app={id} type="button" onClick={event => launch(id, event.currentTarget)}>
+        onSettings={() => launch('settings')} />
+      <nav className={styles.gameShortcuts} aria-label="Desktop shortcuts">
+        {desktopGames.map(id => <button key={id} data-launch-app={id} type="button" onClick={() => launch(id)}>
           <img src={`/icons/games/${id}.png`} width="48" height="40" alt="" />
           <span>{id}.exe</span>
         </button>)}
+        {hasSlip && <button data-launch-app={TILL_SLIP} type="button" onClick={() => launch(TILL_SLIP)}>
+          <img src="/icons/till-slip.png" width="48" height="40" alt="" />
+          <span>{tillSlip.name}</span>
+        </button>}
       </nav>
-      {app && <DeskWindow app={app} onClose={closeApp} />}
+      {app && (app !== TILL_SLIP || hasSlip) && <DeskWindow app={app} till={world} onClose={closeApp} />}
       {hidden && (
         <button ref={restore} data-state={hidden} className={styles.desktopFolder} onClick={openWelcome}>
           <i className={styles.folder} aria-hidden="true" />

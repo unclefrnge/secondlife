@@ -25,7 +25,7 @@ export function useChamberWorld() {
     setReady(true);
 
     const sync = (event: StorageEvent) => {
-      if (event.key !== INTERCOM_KEY || event.storageArea !== window.localStorage) return;
+      if ((event.key !== INTERCOM_KEY && event.key !== null) || event.storageArea !== window.localStorage) return;
       const loaded = readWorld(event.newValue);
       writable.current = loaded.writable;
       setDurable(loaded.writable);

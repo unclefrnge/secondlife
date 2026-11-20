@@ -38,10 +38,6 @@ export default function HomePage() {
             ))}
           </ul>
         </nav>
-        <a className={styles.enter} href="/desktop">
-          <img src="/icons/welcome-computer.png" width="32" height="32" alt="" />
-          enter desktop
-        </a>
       </div>
       <footer className={styles.footer}>
         {footerLinks.map(link => <a key={link.href} href={link.href}>{link.label}</a>)}
