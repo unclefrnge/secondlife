@@ -18,5 +18,6 @@ export function contactSettings() {
     return { mode: 'mail' as const, siteKey, secret, sender, apiKey };
   }
 
+  if (process.env.VERCEL_ENV === 'production') return { mode: 'hosted' as const };
   return { mode: 'offline' as const };
 }

@@ -82,7 +82,9 @@ Edit `lib/config.ts` for:
 
 ## Contact form
 
-The footer opens `/contact`. For public submissions, configure the following server environment variables and restart the app. Use a Cloudflare Turnstile widget restricted to the site’s hostnames and a sender address verified in Resend.
+Production uses FormSubmit’s standard HTML endpoint with its hosted reCAPTCHA and a hidden honeypot. The first submission requests activation at the artist email address. After a successful submission, visitors return to `/contact?submitted=1`.
+
+For the alternative Resend transport, configure the following server environment variables and restart the app. Use a Cloudflare Turnstile widget restricted to the site’s hostnames and a sender address verified in Resend.
 
 | Variable | Purpose |
 | --- | --- |
@@ -93,4 +95,4 @@ The footer opens `/contact`. For public submissions, configure the following ser
 
 Mail goes to the artist address in `lib/config.ts`. Reply addresses come from the form. A server-side spam check precedes delivery. The form confirms submission after Resend accepts the message.
 
-For a local rehearsal, set `CONTACT_PREVIEW_INBOX` to a private directory outside the checkout and bind the server to loopback. This mode uses Cloudflare’s test widget and saves each test inquiry as a private JSON file. Leave the variable unset on public servers. With no configured transport the contact page shows the artist’s email address.
+For a local rehearsal, set `CONTACT_PREVIEW_INBOX` to a private directory outside the checkout and bind the server to loopback. This mode uses Cloudflare’s test widget and saves each test inquiry as a private JSON file. Leave the variable unset on public servers. Outside production, the contact page shows the artist’s email address when neither transport is configured.

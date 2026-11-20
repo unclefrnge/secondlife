@@ -12,7 +12,7 @@ export default function PrivacyPage() {
         <div className="space-y-2 text-sm text-muted">
           <p>We use your email when you subscribe for the free download.</p>
           <p>Subscribers receive one or two emails a month. Each email includes an unsubscribe link.</p>
-          <p>The contact form uses Cloudflare Turnstile to check submissions for spam. Resend forwards your message and reply address to FRNGE for the purpose of answering your inquiry.</p>
+          <p>When you send an inquiry, FormSubmit processes your message and reply address, checks for spam using reCAPTCHA, and forwards the inquiry to FRNGE. Your address is used to reply.</p>
           <p>We do not sell your data.</p>
           <p>Questions? <Link href="/contact">Contact FRNGE</Link>.</p>
         </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
+import InquiryFields from './InquiryFields';
 import { submitInquiry } from './actions';
 import styles from './contact.module.css';
 
@@ -50,11 +51,7 @@ export default function ContactForm({ siteKey, preview }: { siteKey: string; pre
     <form className={styles.form} onSubmit={submit}>
       {preview && <p className={styles.note}>Local preview · test inquiries are saved on this computer.</p>}
       <noscript>Enable JavaScript to complete the spam check and send an inquiry.</noscript>
-      <label>your email<input type="email" name="email" autoComplete="email" maxLength={254} required /></label>
-      <label>message<textarea name="message" rows={5} maxLength={4000} required /></label>
-      <div className={styles.trap} aria-hidden="true">
-        <label>website<input name="website" tabIndex={-1} autoComplete="off" /></label>
-      </div>
+      <InquiryFields honeypot="website" />
       <Turnstile ref={widget} siteKey={siteKey} options={{ action: 'contact', theme: 'dark', size: compact ? 'compact' : 'flexible' }}
         scriptOptions={{ onError: () => setChallengeError(true) }}
         onError={() => setChallengeError(true)} onUnsupported={() => setChallengeError(true)}

@@ -9,7 +9,7 @@ import { contactSettings } from '@/lib/contact-settings';
 export async function submitInquiry(data: FormData) {
   const settings = contactSettings();
   const unavailable = { ok: false, message: 'The form is temporarily unavailable. Try again later.' };
-  if (settings.mode === 'offline') return unavailable;
+  if (settings.mode !== 'mail' && settings.mode !== 'preview') return unavailable;
 
   const text = (key: string) => {
     const value = data.get(key);
