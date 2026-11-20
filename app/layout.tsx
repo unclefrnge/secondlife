@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
-import '@react95/fonts/sans-serif/8pt';
-import '@react95/fonts/sans-serif/10pt';
-import '@react95/fonts/sans-serif/12pt';
 import './globals.css';
 import { frnge, siteMetadata } from '@/lib/config';
 

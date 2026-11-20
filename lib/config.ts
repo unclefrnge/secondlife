@@ -22,6 +22,7 @@ export const frnge = {
   email: 'contact@frn.ge',
   links: {
     spotify: 'https://open.spotify.com/artist/3mKDwqQ4AyrT3AQkiBqGHn',
+    appleMusic: 'https://music.apple.com/ph/artist/frnge/1176306124',
     bandcamp: 'https://frnge.bandcamp.com',
     soundcloud: 'https://soundcloud.com/frngemusic',
     website: 'https://frn.ge',

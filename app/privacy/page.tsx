@@ -10,10 +10,11 @@ export default function PrivacyPage() {
         </header>
 
         <div className="space-y-2 text-sm text-muted">
-          <p>We collect your email only when you subscribe for the free download.</p>
-          <p>We send one or two emails a month. Each email includes an unsubscribe link.</p>
+          <p>We use your email when you subscribe for the free download.</p>
+          <p>Subscribers receive one or two emails a month. Each email includes an unsubscribe link.</p>
+          <p>The contact form uses Cloudflare Turnstile to check submissions for spam. Resend forwards your message and reply address to FRNGE for the purpose of answering your inquiry.</p>
           <p>We do not sell your data.</p>
-          <p>Questions: hello@chambercollective.example</p>
+          <p>Questions? <Link href="/contact">Contact FRNGE</Link>.</p>
         </div>
 
         <Link

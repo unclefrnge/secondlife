@@ -16,7 +16,9 @@ Now includes **Chamber Text Quest**, a desktop shortcut parser game inside Chamb
 
 ## Routes
 
-- `/` Boot and mode selection
+- `/` Public FRNGE music and project links
+- `/desktop` Green simulated boot and closed visitor login
+- `/contact` Artist inquiries
 - `/chamber-text-quest` Chamber Text Quest (retro parser game)
 - `/chapters` Legacy route; redirects to `/`
 - `/download` Newsletter-gated download flow (placeholder integration)
@@ -77,3 +79,18 @@ Edit `lib/config.ts` for:
 
 - Download subscription submit is currently a placeholder function in `app/download/page.tsx`.
 - Replace `https://example.com/...` links in `lib/config.ts` before production.
+
+## Contact form
+
+The footer opens `/contact`. For public submissions, configure the following server environment variables and restart the app. Use a Cloudflare Turnstile widget restricted to the site’s hostnames and a sender address verified in Resend.
+
+| Variable | Purpose |
+| --- | --- |
+| `TURNSTILE_SITE_KEY` | Public widget key |
+| `TURNSTILE_SECRET_KEY` | Private server verification key |
+| `RESEND_API_KEY` | Sending API key |
+| `CONTACT_FROM_EMAIL` | Verified sender address |
+
+Mail goes to the artist address in `lib/config.ts`. Reply addresses come from the form. A server-side spam check precedes delivery. The form confirms submission after Resend accepts the message.
+
+For a local rehearsal, set `CONTACT_PREVIEW_INBOX` to a private directory outside the checkout and bind the server to loopback. This mode uses Cloudflare’s test widget and saves each test inquiry as a private JSON file. Leave the variable unset on public servers. With no configured transport the contact page shows the artist’s email address.

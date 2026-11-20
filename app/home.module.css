@@ -1,0 +1,165 @@
+.page {
+  --paper: #e5e8dc;
+  --accent: #c4d59c;
+  --line: #424c3c;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: clamp(12px, 4vw, 64px);
+  background: #11150f;
+  color: var(--paper);
+}
+
+.window {
+  width: min(100%, 40rem);
+  border: 1px solid #535c4a;
+  background: #191e17;
+}
+
+.bar, .bar span:first-child, .enter, .directory a {
+  display: flex;
+  align-items: center;
+}
+
+.bar {
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .55rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  background: #22281f;
+  color: #bdc4b4;
+  font: 400 .94rem/1.5 var(--font-identity);
+}
+
+.bar span:first-child { gap: .65rem; color: var(--paper); }
+.bar img { filter: brightness(0) invert(.88); }
+
+.content {
+  display: grid;
+  justify-items: stretch;
+  gap: 1.75rem;
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+}
+
+.directory h1 {
+  margin: 0 0 1rem;
+  font: 400 clamp(1.8rem, 4vw, 2.4rem)/1.1 var(--font-identity);
+  color: var(--paper);
+}
+
+.directory ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 clamp(1rem, 3.5vw, 2.75rem);
+}
+
+.directory li { border-top: 1px solid var(--line); }
+
+.directory a {
+  position: relative;
+  gap: 1rem;
+  min-height: 62px;
+  padding: .7rem .45rem;
+  font: 500 1.125rem/1.4 var(--font-sans);
+}
+
+.platform { flex: none; image-rendering: pixelated; }
+.arrow { margin-left: auto; color: var(--accent); font: 400 1.15rem/1 var(--font-identity); }
+
+.directory a:is(:hover, :focus-visible) { background: #252d21; }
+.directory a:is(:hover, :focus-visible) .arrow { transform: translate(2px, -2px); }
+
+.enter {
+  justify-self: center;
+  justify-content: center;
+  gap: .75rem;
+  width: min(100%, 16rem);
+  min-height: 52px;
+  padding: .5rem 1rem;
+  border: 2px solid;
+  border-color: #e1e5cb #758069 #758069 #e1e5cb;
+  box-shadow: 1px 1px 0 #070a06;
+  background: #b9c3a2;
+  color: #1c2419;
+  font: 400 1.1rem/1.25 var(--font-identity);
+}
+
+.enter img { flex: none; image-rendering: pixelated; }
+.enter:is(:hover, :focus-visible) { background: #ccd6b6; }
+.enter:active {
+  border-color: #727b64 #d6dec1 #d6dec1 #727b64;
+  box-shadow: none;
+  padding: calc(.5rem + 1px) calc(1rem - 1px) calc(.5rem - 1px) calc(1rem + 1px);
+}
+
+.featured ul { display: grid; gap: .65rem; }
+.featured a {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 3vw, 1.75rem);
+  min-height: 72px;
+  padding: clamp(.95rem, 2.8vw, 1.5rem);
+  border: 1px solid;
+  border-color: #f0eee0 #828475 #828475 #f0eee0;
+  background: #dedfcf;
+  color: #192017;
+  box-shadow: 2px 2px 0 #080c07;
+}
+.featured img { width: clamp(64px, 18vw, 92px); height: auto; flex: none; }
+.projectTitle {
+  min-width: 0;
+  font: 400 clamp(1.25rem, 3vw, 1.65rem)/1.1 var(--font-identity);
+  overflow-wrap: anywhere;
+}
+.projectTitle small { display: block; margin-bottom: .45rem; color: #49503e; font: 400 .81rem/1.3 var(--font-sans); }
+.projectArrow {
+  flex: none;
+  margin-left: auto;
+  font: 400 1.5rem/1 var(--font-identity);
+}
+.featured a:is(:hover, :focus-visible) { background: #f0f0e2; }
+.featured a:active { box-shadow: inset 1px 1px 0 #72756b; }
+
+.footer {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: .4rem;
+  padding: .85rem clamp(1.25rem, 4vw, 2.5rem);
+  border-top: 1px solid var(--line);
+}
+
+.footer a {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: .4rem;
+  border: 1px solid #464f40;
+  background: #22281f;
+  color: #cbd0c2;
+  font: 400 .875rem/1.3 var(--font-sans);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.footer a:is(:hover, :focus-visible) { background: #2b3327; border-color: #758069; color: var(--paper); }
+.footer a:active { background: #191f17; box-shadow: inset 1px 1px 0 #10140e; }
+.page a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .arrow { transition: transform 120ms steps(2, end); }
+}
+
+@media (max-width: 40rem) {
+  .footer { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 36rem) {
+  .content { gap: 1.25rem; }
+  .directory ul { grid-template-columns: 1fr; }
+  .directory a { min-height: 52px; }
+  .enter { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .directory a:is(:hover, :focus-visible) .arrow { transform: none; }
+}
