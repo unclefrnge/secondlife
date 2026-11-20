@@ -1,16 +1,10 @@
 .window { max-width: 30rem; }
 .body { padding: clamp(1.25rem, 5vw, 2.5rem); }
-.account { display: flex; align-items: center; gap: 1.1rem; padding-block: .65rem 1.8rem; }
+.account { display: flex; align-items: center; gap: 1.1rem; padding-block: .65rem; }
 .account img { flex: none; image-rendering: pixelated; }
 .account h1 { margin: 0; font: 400 1.75rem/1.2 var(--font-identity); }
 .account h1:focus { outline: none; }
 .account p { margin-top: .25rem; color: #bdc4b4; }
-.log { border-top: 1px solid var(--line); font-size: .9375rem; }
-.log summary { display: list-item; width: fit-content; padding: .8rem .2rem; cursor: pointer; color: var(--accent); font-family: var(--font-identity); }
-.record { padding-block: .25rem .5rem; }
-.record p { display: grid; grid-template-columns: 3.4rem 1fr; gap: .75rem; line-height: 1.55; margin-bottom: .4rem; }
-.record p > :first-child { color: #bdc4b4; }
-.record a { display: inline-flex; align-items: center; min-height: 44px; text-decoration: underline; text-underline-offset: 3px; }
 .footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--line); padding: .2rem clamp(1.25rem, 5vw, 2.5rem); }
 .footer :is(a, button) { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); }
 .footer :is(a, button):hover { text-decoration: underline; }

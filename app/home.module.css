@@ -43,7 +43,7 @@
 
 .directory h1 {
   margin: 0 0 1rem;
-  font: 400 clamp(1.8rem, 4vw, 2.4rem)/1.1 var(--font-identity);
+  font: 400 clamp(1.45rem, 3vw, 1.8rem)/1.1 var(--font-identity);
   color: var(--paper);
 }
 
@@ -64,10 +64,10 @@
 }
 
 .platform { flex: none; image-rendering: pixelated; }
-.arrow { margin-left: auto; color: var(--accent); font: 400 1.15rem/1 var(--font-identity); }
+.sigil { margin-left: auto; color: var(--accent); font: 400 1.15rem/1 Georgia, serif; }
 
 .directory a:is(:hover, :focus-visible) { background: #252d21; }
-.directory a:is(:hover, :focus-visible) .arrow { transform: translate(2px, -2px); }
+
 
 .enter {
   justify-self: center;
@@ -112,10 +112,10 @@
   overflow-wrap: anywhere;
 }
 .projectTitle small { display: block; margin-bottom: .45rem; color: #49503e; font: 400 .81rem/1.3 var(--font-sans); }
-.projectArrow {
+.projectSigil {
   flex: none;
   margin-left: auto;
-  font: 400 1.5rem/1 var(--font-identity);
+  font: 400 1.45rem/1 Georgia, serif;
 }
 .featured a:is(:hover, :focus-visible) { background: #f0f0e2; }
 .featured a:active { box-shadow: inset 1px 1px 0 #72756b; }
@@ -145,9 +145,6 @@
 .footer a:active { background: #191f17; box-shadow: inset 1px 1px 0 #10140e; }
 .page a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-@media (prefers-reduced-motion: no-preference) {
-  .arrow { transition: transform 120ms steps(2, end); }
-}
 
 @media (max-width: 40rem) {
   .footer { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -158,8 +155,4 @@
   .directory ul { grid-template-columns: 1fr; }
   .directory a { min-height: 52px; }
   .enter { width: 100%; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .directory a:is(:hover, :focus-visible) .arrow { transform: none; }
 }

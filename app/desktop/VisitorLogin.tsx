@@ -29,14 +29,6 @@ export default function VisitorLogin() {
               <p>visitor login is closed</p>
             </div>
           </div>
-          <details className={styles.log}>
-            <summary>clockify.log</summary>
-            <div className={styles.record}>
-              <p><time>19:34</time><span>The council retires Clockify.</span></p>
-              <p><span>later</span><span>Adriaan gets praised for logging his hours.</span></p>
-              <a href="https://chamber-times.vercel.app/#entry=83">Chamber Times, entry 83 ↗</a>
-            </div>
-          </details>
         </section>
         <footer className={styles.footer}>
           <a href="/">← back to links</a>

@@ -1,0 +1,17 @@
+.moon {
+  display: inline-block; position: relative; width: 24px; height: 24px; flex: none;
+  background: url('/icons/moon-phases.png') no-repeat 0 0 / 4800% 100%; image-rendering: pixelated;
+}
+.moon[data-large='true'] { width: 72px; height: 72px; }
+@media (prefers-reduced-motion: no-preference) {
+  summary:hover .moon::after, summary:focus-visible .moon::after, details[open] .moon[data-large='true']::after {
+    content: ''; position: absolute; left: 5%; top: 65%; width: 36%; height: 6%;
+    background: #96a88d; box-shadow: 4px -2px #bac6aa;
+    animation: cloud-drift 2.6s steps(14, end) 1 both;
+  }
+}
+@keyframes cloud-drift {
+  0% { transform: translateX(-30%); opacity: 0; }
+  18%, 78% { opacity: .8; }
+  100% { transform: translateX(215%); opacity: 0; }
+}

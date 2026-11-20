@@ -1668,7 +1668,7 @@ export default function ChamberTextQuestPage() {
         }
 
         .chamber-prize-shake {
-          animation: chamber-prize-shake 1.2s ease-in-out infinite;
+          animation: chamber-prize-shake 640ms ease-in-out;
         }
 
         .chamber-prize-still {

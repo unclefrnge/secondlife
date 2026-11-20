@@ -29,13 +29,13 @@ export const metadata: Metadata = {
     siteName: siteMetadata.title,
     title: siteMetadata.title,
     description: siteMetadata.description,
-    images: ['/og-image.svg']
+    images: [{ url: '/frnge-share.png', width: 1200, height: 630, alt: 'FRNGE welcome window with the artwork for ALSO, the latest release.' }]
   },
   twitter: {
     card: 'summary_large_image',
     title: siteMetadata.title,
     description: siteMetadata.description,
-    images: ['/og-image.svg']
+    images: [{ url: '/frnge-share.png', alt: 'FRNGE welcome window with the artwork for ALSO, the latest release.' }]
   }
 };
 
