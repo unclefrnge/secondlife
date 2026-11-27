@@ -1,88 +1,52 @@
 'use client';
 
-import 'media-chrome/react';
-import 'media-chrome/react/menu';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import MediaThemeWinamp from '@player.style/winamp/react';
-
+import { MediaController } from 'media-chrome/react';
+import { useEffect, useRef, useState } from 'react';
+import { ChamberDeck } from '@/components/player/ChamberDeck';
+import { Transport } from '@/components/player/Transport';
+import styles from '@/components/player/chamber-deck.module.css';
 import { getTrackAudioUrl } from '@/lib/audio';
+import { tracks } from '@/lib/config';
 import type { Track } from '@/lib/types';
 
-interface SecondLifeWinampPlayerProps {
+interface PlayerProps {
   track: Track | null;
   autoplayToken: number;
+  onPlayTrack: (trackId: string) => void;
 }
 
-export function SecondLifeWinampPlayer({ track, autoplayToken }: SecondLifeWinampPlayerProps) {
+export function SecondLifeWinampPlayer({ track, autoplayToken, onPlayTrack }: PlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [autoplayNotice, setAutoplayNotice] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const trackUrl = useMemo(() => (track ? getTrackAudioUrl(track) : null), [track]);
+  const [notice, setNotice] = useState('');
+  const [failed, setFailed] = useState(false);
+  const trackUrl = track ? getTrackAudioUrl(track) : null;
+  const index = tracks.findIndex(item => item.id === track?.id);
 
   useEffect(() => {
-    setAutoplayNotice(null);
-    setLoadError(null);
-  }, [trackUrl]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !trackUrl) {
-      return;
+    let current = true;
+    setNotice('');
+    setFailed(false);
+    if (trackUrl) {
+      void audioRef.current?.play().catch(error => {
+        if (current && error.name === 'NotAllowedError') setNotice('Press Play to start.');
+      });
     }
-
-    void audio
-      .play()
-      .then(() => setAutoplayNotice(null))
-      .catch(() => setAutoplayNotice('Press Play to start audio.'));
-  }, [autoplayToken, trackUrl]);
-
-  if (!track || !trackUrl) {
-    return (
-      <div className="h-full w-full p-3">
-        <div className="flex h-full min-h-[240px] items-center justify-center rounded-md border border-border bg-black/25 px-4 text-center text-sm text-muted">
-          Select a track in the Library to open playback.
-        </div>
-      </div>
-    );
-  }
+    return () => { current = false; };
+  }, [trackUrl, autoplayToken]);
 
   return (
-    <div className="h-full w-full overflow-auto px-2 py-3">
-      <div className="mx-auto w-[275px] min-w-[275px]">
-        <MediaThemeWinamp
-          style={{
-            display: 'block',
-            width: '275px',
-            height: '260px'
-          }}
-        >
-          <audio
-            key={trackUrl}
-            ref={audioRef}
-            slot="media"
-            src={trackUrl}
-            playsInline
-            crossOrigin="anonymous"
-            onError={() => {
-              setLoadError('Could not load track.');
-              setAutoplayNotice(null);
-            }}
-          />
-        </MediaThemeWinamp>
-      </div>
-
-      <div className="mx-auto mt-3 w-[275px] space-y-1 text-xs">
-        <p className="truncate text-text">{track.title}</p>
-        {autoplayNotice ? <p className="text-muted">{autoplayNotice}</p> : null}
-        {loadError ? (
-          <p className="text-danger">
-            {loadError}{' '}
-            <a href={trackUrl} target="_blank" rel="noreferrer" className="underline">
-              Open source file
-            </a>
-          </p>
-        ) : null}
-      </div>
+    <div className={styles.residentBody}>
+      <ChamberDeck title={track?.title ?? 'Second Life'} credit={track ? 'FRNGE · Second Life' : 'FRNGE · Choose a track'}
+        playlist={{ collection: "Second Life", selected: index, titles: tracks.map(item => item.title), onSelect: next => onPlayTrack(tracks[next].id) }} source={trackUrl ? <a href={trackUrl} target="_blank" rel="noreferrer">Open audio file</a> : `${tracks.length} tracks`}>
+        {trackUrl && <>
+          <MediaController id="second-life-media" audio>
+            <audio key={trackUrl} slot="media" ref={audioRef} src={trackUrl} playsInline
+              onPlaying={() => setNotice('')} onError={() => setFailed(true)} />
+          </MediaController>
+          <Transport controller="second-life-media" />
+          {(failed || notice) && <p className={styles.notice} role="status">{failed ? 'Audio unavailable. Try the source file below.' : notice}</p>}
+        </>}
+      </ChamberDeck>
     </div>
   );
 }

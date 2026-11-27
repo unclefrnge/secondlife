@@ -2,10 +2,15 @@
 
 import { type PointerEvent as ReactPointerEvent, type ReactNode, useMemo, useState } from 'react';
 
+import dynamic from 'next/dynamic';
+import type { TillProgress } from '@/components/games/Till';
 import { ChamberTextQuest } from '@/components/windows/apps/ChamberTextQuest';
 import { LoreMap } from '@/components/windows/apps/LoreMap';
 import { AboutChamberOS } from '@/components/windows/apps/AboutChamberOS';
 import { Notes } from '@/components/windows/apps/Notes';
+import { FileBrowser } from '@/components/windows/apps/FileBrowser';
+import type { Recording } from '@/app/work/Recordings';
+import { ResidentMiniPlayer } from '@/components/player/ResidentMiniPlayer';
 import { SecondLifeWinampPlayer } from '@/components/windows/apps/SecondLifeWinampPlayer';
 import { Settings } from '@/components/windows/apps/Settings';
 import { ChamberLink, ContactMail, FrngeProfile, ListenDirectory, ReleaseDirectory } from '@/components/windows/apps/FrngeApps';
@@ -18,9 +23,18 @@ import type { AppId, ChamberWindow } from '@/lib/windowStore';
 import { cn } from '@/lib/utils';
 import { OSWindow } from '@/components/windows/OSWindow';
 
+const ResidentRecordingWindow = dynamic(() => import('@/components/player/ResidentRecordingWindow').then(module => module.ResidentRecordingWindow));
+const Till = dynamic(() => import('@/components/games/Till').then(module => module.Till));
+const Firefly = dynamic(() => import('@/components/games/Firefly').then(module => module.Firefly));
+
 interface WindowManagerProps {
+  tillProgress: TillProgress;
+  deliveredFileIds: string[];
+  onFileRead: (id: string) => void;
+  onNavigateFiles: (windowId: string, entryId: string) => void;
   windows: ChamberWindow[];
   focusedWindowId: string | null;
+  calendarRecording: Recording | null;
   activeTrackId: string | null;
   autoplayToken: number;
   uiScale: number;
@@ -31,15 +45,20 @@ interface WindowManagerProps {
   onFocusWindow: (windowId: string) => void;
   onCloseWindow: (windowId: string) => void;
   onMinimiseWindow: (windowId: string) => void;
+  onRestoreWindow: (windowId: string) => void;
   onWindowDragStart: (event: ReactPointerEvent<HTMLElement>, windowId: string) => void;
 }
 
 function renderApp(
   appId: AppId,
+  tillProgress: TillProgress,
   activeTrack: Track | null,
   autoplayToken: number,
   onPlayTrack: (trackId: string) => void
 ): ReactNode {
+  if (appId === 'till') return <Till {...tillProgress} />;
+  if (appId === 'firefly') return <Firefly />;
+
   if (appId === 'credits') {
     return <AboutChamberOS />;
   }
@@ -57,7 +76,7 @@ function renderApp(
   }
 
   if (appId === 'listen') {
-    return <SecondLifeWinampPlayer track={activeTrack} autoplayToken={autoplayToken} />;
+    return <SecondLifeWinampPlayer track={activeTrack} autoplayToken={autoplayToken} onPlayTrack={onPlayTrack} />;
   }
 
   if (appId === 'support') {
@@ -145,8 +164,13 @@ function renderApp(
 }
 
 export function WindowManager({
+  tillProgress,
+  deliveredFileIds,
+  onFileRead,
+  onNavigateFiles,
   windows,
   focusedWindowId,
+  calendarRecording,
   activeTrackId,
   autoplayToken,
   uiScale,
@@ -157,6 +181,7 @@ export function WindowManager({
   onFocusWindow,
   onCloseWindow,
   onMinimiseWindow,
+  onRestoreWindow,
   onWindowDragStart
 }: WindowManagerProps) {
   const isMobile = useIsMobile();
@@ -169,19 +194,26 @@ export function WindowManager({
     [windows]
   );
   const hasForegroundWindow = visibleWindows.some((window) => window.id === focusedWindowId);
-  // Keep mobile apps mounted while hidden so their local state survives app switching.
-  const renderedWindows = isMobile ? windows : visibleWindows;
+  // Preserve app state (including quest progress and notes) when minimising on any screen.
+  const renderedWindows = windows;
+  const mini = windows.find(item => item.appId === 'listen' && item.isMinimised);
 
   return (
     <>
       <section
         className={cn(
           isMobile
-            ? cn('absolute inset-3 z-20 min-h-0 min-w-0 overflow-hidden', hasForegroundWindow ? 'pointer-events-auto' : 'pointer-events-none')
+            ? cn('absolute inset-3 z-20 min-h-0 min-w-0', hasForegroundWindow ? 'pointer-events-auto' : 'pointer-events-none')
             : 'pointer-events-none relative h-full w-full'
         )}
       >
-        {renderedWindows.map((window) => (
+        {renderedWindows.map((window) => window.appId === 'listen' && calendarRecording ? (
+          <ResidentRecordingWindow key={window.id} recording={calendarRecording} id={window.id}
+            focused={window.id === focusedWindowId} mini={window.isMinimised}
+            layer={window.isMinimised ? Math.max(...windows.map(item => item.zIndex)) + 1 : window.zIndex}
+            onFocus={() => onFocusWindow(window.id)} onClose={() => onCloseWindow(window.id)}
+            onMinimise={() => onMinimiseWindow(window.id)} onRestore={() => onRestoreWindow(window.id)} />
+        ) : (
           <OSWindow
             key={window.id}
             window={window}
@@ -195,14 +227,17 @@ export function WindowManager({
             onMinimise={onMinimiseWindow}
             onDragStart={onWindowDragStart}
           >
-            {renderApp(
+            {window.appId === 'files' ? <FileBrowser onGame={onOpenWindow} entryId={window.entryId} onNavigate={(entryId) => onNavigateFiles(window.id, entryId)} onPlayTrack={onPlayTrack} deliveredFileIds={deliveredFileIds} onFileRead={onFileRead} /> : renderApp(
               window.appId,
+              tillProgress,
               activeTrack,
               autoplayToken,
               onPlayTrack
             )}
           </OSWindow>
         ))}
+        {mini && !calendarRecording && activeTrack && <ResidentMiniPlayer title={activeTrack.title} layer={Math.max(...windows.map(item => item.zIndex)) + 1}
+          onRestore={() => onRestoreWindow(mini.id)} onClose={() => onCloseWindow(mini.id)} />}
       </section>
 
       <Dialog open={modulesOpen} onOpenChange={setModulesOpen}>

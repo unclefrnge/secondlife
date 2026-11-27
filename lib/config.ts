@@ -1,6 +1,7 @@
 import type { AppendixItem, Track } from '@/lib/types';
 
 export const audioBaseUrl = 'https://pub-253937541e654a4584ad79958b1ed95e.r2.dev';
+export const chamberBuild = 'v0.2 DMZ Build';
 
 export const siteMetadata = {
   title: 'FRNGE',
@@ -23,8 +24,10 @@ export const frnge = {
   links: {
     spotify: 'https://open.spotify.com/artist/3mKDwqQ4AyrT3AQkiBqGHn',
     appleMusic: 'https://music.apple.com/ph/artist/frnge/1176306124',
+    tidal: 'https://tidal.com/',
     bandcamp: 'https://frnge.bandcamp.com',
     soundcloud: 'https://soundcloud.com/frngemusic',
+    subvert: 'https://subvert.fm/',
     website: 'https://frn.ge',
     instagram: 'https://instagram.com/unclefrnge/',
     tiktok: 'https://www.tiktok.com/@unclefrnge',

@@ -61,5 +61,6 @@ export function useChamberClock() {
     ? new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short', year: 'numeric', timeZone }).format(now)
     : '-- --- ----';
   const localTime = now ? new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', hourCycle, timeZone }).format(now) : '--:--';
-  return { now, chamberCycle, localDate, localTime };
+  const day = now ? new Intl.DateTimeFormat('sv-SE', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now) : null;
+  return { now, chamberCycle, localDate, localTime, day };
 }

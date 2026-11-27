@@ -8,6 +8,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontSize: {
+        xs: ['0.8125rem', { lineHeight: '1.4' }],
+        '3xl': ['2rem', { lineHeight: '1.25' }]
+      },
       colors: {
         bg: 'var(--color-bg)',
         surface: 'var(--color-surface)',
@@ -34,7 +38,7 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-sans)'],
         identity: ['var(--font-identity)'],
-        mono: ['var(--font-machine)'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
         machine: ['var(--font-machine)']
       }
     }

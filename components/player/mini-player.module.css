@@ -1,0 +1,21 @@
+.bar {
+  flex: none; display: flex; align-items: center; gap: .5rem; min-height: 48px; padding: 2px 4px 2px 8px;
+  background: #253427; color: #ebefdb; border-bottom: 1px solid #495843;
+  cursor: grab; user-select: none; touch-action: none;
+}
+.bar:active { cursor: grabbing; }
+.bar:focus-visible, .bar button:focus-visible { outline: 2px solid #daedb8; outline-offset: -3px; }
+.art { flex: none; width: 26px; height: 26px; object-fit: contain; image-rendering: auto; }
+.label { min-width: 0; flex: 1; }
+.label strong, .label small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.label strong { font: 500 .94rem/1.25 var(--font-sans); }
+.label small { color: #bccbb5; font: 400 .77rem/1.2 var(--font-sans); }
+.bar button { display: grid; flex: none; place-items: center; width: 40px; height: 44px; cursor: pointer; color: #e6eddd; }
+.bar button + button { margin-left: -.5rem; }
+.bar button:hover { background: #394d38; }
+@media (pointer: coarse) { .bar button { width: 44px; } }
+.resident {
+  position: fixed; right: max(.75rem, env(safe-area-inset-right)); bottom: calc(84px + env(safe-area-inset-bottom));
+  width: min(19.5rem, calc(100% - 1.5rem)); pointer-events: auto; overflow: hidden;
+  border: 1px solid #829475; border-radius: 8px; background: #233024; box-shadow: 2px 3px 0 #0b110c99;
+}

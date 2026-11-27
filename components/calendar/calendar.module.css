@@ -1,0 +1,49 @@
+.clock { position: relative; color: inherit; font-size: .875rem; }
+.trigger { display: flex; align-items: center; min-height: 40px; padding: 0 .4rem; cursor: pointer; }
+.trigger time { display: flex; gap: .7rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.trigger:hover, .trigger[aria-expanded='true'] { background: #30392a; }
+.trigger:focus-visible, .panel :is(a,button,select):focus-visible { outline: 2px solid #bacd9b; outline-offset: -2px; }
+.panel {
+  position: absolute; z-index: 1; inset: 100% 0 auto auto; width: min(19rem, calc(100vw - 1rem));
+  max-height: calc(100dvh - 52px - env(safe-area-inset-top)); overflow: auto; overscroll-behavior: contain;
+  padding: .65rem .8rem .45rem; background: #232c21; color: #e1e6d7; color-scheme: dark;
+  border: 1px solid #586750; box-shadow: 2px 3px 0 #10180fd9; text-align: left;
+  font: 400 .875rem/1.35 var(--font-sans);
+}
+.panel:focus { outline: none; }
+.grid, .days { width: 100%; }
+.grid { display: block; }
+.grid::part(container) { gap: .2rem; }
+.grid::part(header) { display: grid; grid-template-columns: 2.2rem 1fr 2.2rem; align-items: center; }
+.grid::part(button) { width: 2.2rem; height: 2.2rem; padding: 0; border: 0; border-radius: 0; background: transparent; color: #dce5ce; cursor: pointer; font: 1.5rem/1 var(--font-sans); }
+.grid select { max-width: 100%; margin: auto; background: #232c21; color: #e1e6d7; border: 0; font: 400 1.02rem var(--font-identity); cursor: pointer; }
+.days { --color-accent: #c5d6ad; --color-text-on-accent: #202c1e; }
+.days::part(heading) { display: none; }
+.days::part(table) { table-layout: fixed; width: 100%; }
+.days::part(th) { font: 400 .69rem var(--font-sans); color: #b5bfa9; height: 1.8rem; }
+.days::part(button) { position: relative; width: 100%; height: 2rem; font: 400 .88rem var(--font-sans); cursor: pointer; border-radius: 2px; }
+.days::part(today) { box-shadow: inset 0 0 0 1px #788768; }
+.days::part(has-entry)::after { content: ''; position: absolute; left: calc(50% - 2px); bottom: 2px; width: 4px; height: 4px; border-radius: 50%; background: #bbd49e; }
+.days::part(selected has-entry)::after { background: #34432b; }
+.grid::part(button):hover, .days::part(button):hover { background: #40503a; color: #ecf0e5; }
+.days::part(selected) { background: #c5d6ad; color: #202c1e; }
+.agenda { margin-top: .6rem; border-top: 1px solid #46533e; }
+.agenda > header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.agenda h2, .agenda h3 { font: 500 .82rem/1.4 var(--font-sans); }
+.agenda h3 { margin-top: .6rem; }
+.agenda header button, .message button { padding: .45rem .2rem; min-height: 32px; color: #c7d7b1; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-size: .78rem; }
+.agenda ul { padding: 0; margin: 0; list-style: none; }
+.agenda li :is(a,div) { display: flex; align-items: baseline; gap: .55rem; padding: .42rem .15rem; }
+.agenda a:hover { background: #303e2c; }
+.entryDate, .entryText small, .reading small { color: #bdc7b2; font: 400 .74rem/1.35 var(--font-sans); }
+.entryDate { flex: none; min-width: 3.1rem; font-variant-numeric: tabular-nums; }
+.entryText { flex: 1; overflow-wrap: anywhere; }
+.entryText small, .reading small { display: block; margin-top: .1rem; }
+.play { align-self: center; color: #bdcfa6; font-size: .64rem; }
+.reading { display: block; margin-top: .4rem; padding: .55rem .15rem; border-top: 1px solid #46533e; }
+.reading small { margin-bottom: .15rem; }
+.message { margin: .15rem 0 .55rem; color: #bdc7b2; }
+@media (max-width: 600px) {
+  .trigger time span { display: none; }
+  .panel { position: fixed; inset: calc(44px + env(safe-area-inset-top)) max(.4rem, env(safe-area-inset-right)) auto auto; }
+}

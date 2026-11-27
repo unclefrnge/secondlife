@@ -1,6 +1,11 @@
+import { playerName } from './work-folders';
+import { chamberAppFilename, type DesktopGame } from './desktop-games';
+
 export const SIGIL_ID = 'CHMBR-13A-LOOP-077';
 
 export type AppId =
+  | DesktopGame
+  | 'files'
   | 'about'
   | 'credits'
   | 'text-quest'
@@ -22,6 +27,9 @@ export interface ChamberWindow {
   id: string;
   appId: AppId;
   title: string;
+  entryId?: string;
+  openOrigin?: { x: number; y: number };
+  restoreOrigin?: { x: number; y: number };
   zIndex: number;
   isMinimised: boolean;
   x: number;
@@ -37,22 +45,25 @@ export interface AppWindowMeta {
 }
 
 export const APP_META: Record<AppId, AppWindowMeta> = {
-  credits: { title: 'About / Credits', width: 540, height: 540 },
-  about: { title: 'FRNGE.TXT', width: 540, height: 430 },
-  'text-quest': { title: 'Chamber Text Quest', width: 920, height: 620 },
-  library: { title: 'RELEASES/', width: 600, height: 560 },
-  listen: { title: 'Second Life Player', width: 300, height: 320 },
-  support: { title: 'LISTEN.EXE', width: 460, height: 360 },
-  steal: { title: 'CONTACT.MAIL', width: 620, height: 500 },
-  'lore-map': { title: 'Lore Map', width: 720, height: 520 },
-  'lore-index': { title: 'CHAMBER/', width: 400, height: 270 },
-  settings: { title: 'Settings', width: 520, height: 440 },
-  notes: { title: 'Notes', width: 520, height: 420 },
-  recents: { title: 'Recents', width: 520, height: 400 },
-  documents: { title: 'Documents', width: 520, height: 400 },
-  downloads: { title: 'Downloads', width: 520, height: 400 },
-  network: { title: 'Network', width: 520, height: 400 },
-  'system-status': { title: 'System Status', width: 540, height: 430 }
+  till: { title: chamberAppFilename('till'), width: 430, height: 540 },
+  firefly: { title: chamberAppFilename('firefly'), width: 410, height: 540 },
+  files: { title: 'files', width: 640, height: 520 },
+  credits: { title: 'About ChamberOS', width: 540, height: 540 },
+  about: { title: 'FRNGE.txt', width: 540, height: 430 },
+  'text-quest': { title: 'text quest', width: 920, height: 620 },
+  library: { title: 'releases', width: 600, height: 560 },
+  listen: { title: playerName, width: 408, height: 444 },
+  support: { title: 'where to stream', width: 460, height: 360 },
+  steal: { title: 'contact.mail', width: 620, height: 500 },
+  'lore-map': { title: 'lore map', width: 720, height: 520 },
+  'lore-index': { title: 'Chamber', width: 400, height: 270 },
+  settings: { title: 'settings', width: 520, height: 440 },
+  notes: { title: 'notes', width: 520, height: 420 },
+  recents: { title: 'recents', width: 520, height: 400 },
+  documents: { title: 'documents', width: 520, height: 400 },
+  downloads: { title: 'downloads', width: 520, height: 400 },
+  network: { title: 'network', width: 520, height: 400 },
+  'system-status': { title: 'system status', width: 540, height: 430 }
 };
 
 const WINDOW_START_X = 72;

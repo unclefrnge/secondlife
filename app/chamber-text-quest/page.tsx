@@ -1321,7 +1321,7 @@ export default function ChamberTextQuestPage() {
   if (!hydrated) {
     return (
       <main className={cn('bg-black text-text', embedded ? 'h-[100dvh] overflow-hidden' : 'min-h-dvh')}>
-        <div className={cn('mx-auto flex items-center justify-center px-4 font-mono', embedded ? 'h-full' : 'min-h-dvh max-w-3xl')}>
+        <div className={cn('mx-auto flex items-center justify-center px-4 font-machine', embedded ? 'h-full' : 'min-h-dvh max-w-3xl')}>
           <p className="text-sm text-muted">Loading Chamber Text Quest...</p>
         </div>
       </main>
@@ -1354,7 +1354,7 @@ export default function ChamberTextQuestPage() {
                     className="rounded-[6px] border border-[#2b3f2d]"
                   />
                   <div>
-                    <p className="font-lore text-xl tracking-[0.04em] text-[#8df29a]">Chamber Text Quest</p>
+                    <p className="font-identity text-2xl text-[#8df29a]">Chamber Text Quest</p>
                     <p className="font-machine text-[#6ea775]">canon scene build</p>
                   </div>
                 </div>
@@ -1367,7 +1367,7 @@ export default function ChamberTextQuestPage() {
                 onClick={() => setDrawer('inventory')}
                 className="border-[#2b3f2d] bg-black/35 text-[#7fc387] hover:border-[#61a86a] hover:bg-[#0f1c12]"
               >
-                Inventory
+                inventory
               </Button>
               <Button
                 type="button"
@@ -1376,7 +1376,7 @@ export default function ChamberTextQuestPage() {
                 onClick={() => setDrawer('log')}
                 className="border-[#2b3f2d] bg-black/35 text-[#7fc387] hover:border-[#61a86a] hover:bg-[#0f1c12]"
               >
-                Run Log
+                run log
               </Button>
               {!embedded ? (
                 <Button
@@ -1385,13 +1385,13 @@ export default function ChamberTextQuestPage() {
                   variant="ghost"
                   className="border-[#2b3f2d] bg-black/35 text-[#7fc387] hover:border-[#61a86a] hover:bg-[#0f1c12]"
                 >
-                  <Link href="/">Back to Desktop</Link>
+                  <Link href="/desktop">back to desktop</Link>
                 </Button>
               ) : null}
             </div>
 
             <div className="ml-auto flex items-center gap-2">
-              <div className="rounded-[3px] border border-[#2b3f2d] bg-black/30 px-2 py-1 font-mono text-xs text-[#7dcf89]">
+              <div className="rounded-[3px] border border-[#2b3f2d] bg-black/30 px-2 py-1 font-machine text-xs text-[#7dcf89]">
                 loop {state.loop} | signal {state.signal}
               </div>
               <Button
@@ -1401,16 +1401,16 @@ export default function ChamberTextQuestPage() {
                 onClick={() => setResetOpen(true)}
                 className="border-[#2b3f2d] bg-black/35 text-[#7fc387] hover:border-[#61a86a] hover:bg-[#0f1c12]"
               >
-                New Game
+                new game
               </Button>
             </div>
           </div>
         </header>
 
-        <section className="min-h-0 overflow-hidden bg-[#071009]">
-          <section className="grid h-full min-h-0 min-w-0 grid-cols-1 grid-rows-[auto_minmax(0,1fr)_auto]">
-            <div className="flex items-center justify-between gap-3 border-b border-[#2b3f2d] bg-black/25 px-4 py-2.5 text-[#7dcf89] sm:px-5">
-              <p className="font-lore min-w-0 flex-1 truncate text-[22px] leading-none tracking-[0.025em]">{scene.title}</p>
+        <section className="min-h-0 overflow-y-auto bg-[#071009]">
+          <section className="grid h-full min-h-0 min-w-0 grid-cols-1 grid-rows-[auto_minmax(8rem,1fr)_auto]">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-[#2b3f2d] bg-black/25 px-4 py-2.5 text-[#7dcf89] sm:px-5">
+              <p className="font-lore min-w-0 basis-full break-words text-2xl leading-snug sm:flex-1 sm:basis-auto sm:text-3xl">{scene.title}</p>
               <p className="font-machine shrink-0 text-[#67a96f]">
                 {isTypingSceneText ? 'writing · space to reveal' : `choices: ${visibleChoices.length}`}
               </p>
@@ -1442,7 +1442,7 @@ export default function ChamberTextQuestPage() {
                 <div aria-hidden="true" className="invisible">
                   {visibleOutcome ? (
                     <div className="mb-4 grid grid-cols-[auto_1fr] items-start gap-3 text-base leading-6">
-                      <p className="font-lore-pixel text-base leading-6 text-[#71a978]">echo</p>
+                      <p className="font-sans text-sm leading-6 text-[#71a978]">echo</p>
                       <p className="font-sans italic text-[#9cdda5]">{visibleOutcome}</p>
                     </div>
                   ) : null}
@@ -1452,7 +1452,7 @@ export default function ChamberTextQuestPage() {
                 <div className="absolute inset-0">
                   {visibleOutcome ? (
                     <div className="mb-4 grid grid-cols-[auto_1fr] items-start gap-3 text-base leading-6">
-                      <p className="font-lore-pixel text-base leading-6 text-[#71a978]">echo</p>
+                      <p className="font-sans text-sm leading-6 text-[#71a978]">echo</p>
                       <p className="font-sans italic text-[#9cdda5]">{visibleOutcome}</p>
                     </div>
                   ) : null}
@@ -1463,7 +1463,7 @@ export default function ChamberTextQuestPage() {
             </div>
 
             <div className="grid min-w-0 shrink-0 grid-cols-1 gap-2 border-t border-[#2b3f2d] bg-[#070f0a] px-3 py-2.5 sm:px-4">
-              <p className="font-lore-pixel text-base leading-none tracking-[0.04em] text-[#6ea775]">choose a path</p>
+              <p className="font-sans text-sm leading-normal text-[#6ea775]">choose a path</p>
               <div className={`chamber-choice-grid chamber-choice-count-${visibleChoices.length} grid min-w-0 grid-cols-1 gap-2`}>
                 {visibleChoices.map((choice, index) => (
                   <Button
@@ -1494,7 +1494,7 @@ export default function ChamberTextQuestPage() {
                 <SheetDescription>Current carried artefacts.</SheetDescription>
               </SheetHeader>
 
-              <section className="mt-4 space-y-3 font-mono text-sm">
+              <section className="mt-4 space-y-3 font-machine text-sm">
                 <div className="rounded-[4px] border border-[#2b3f2d] bg-black/25 p-3">
                   <p className="text-xs uppercase tracking-[0.08em] text-[#6ea775]">Items</p>
                   <ul className="mt-2 space-y-1 text-[#8ed596]">
@@ -1527,7 +1527,7 @@ export default function ChamberTextQuestPage() {
                 <SheetDescription>Chronological action trail.</SheetDescription>
               </SheetHeader>
 
-              <section className="mt-4 rounded-[4px] border border-[#2b3f2d] bg-black/25 p-3 font-mono text-sm text-[#8ed596]">
+              <section className="mt-4 rounded-[4px] border border-[#2b3f2d] bg-black/25 p-3 font-machine text-sm text-[#8ed596]">
                 <div className="max-h-[72dvh] space-y-1 overflow-y-auto pr-1">
                   {state.log.length ? (
                     state.log.map((entry, index) => <p key={`${index}-${entry}`}>{entry}</p>)
@@ -1553,13 +1553,13 @@ export default function ChamberTextQuestPage() {
           <div className={cn('chamber-prize-shake p-4 sm:p-5', prizeDownloaded ? 'chamber-prize-still' : '')}>
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#a3aba4]">System Alert</p>
+                <p className="font-machine text-[10px] uppercase tracking-[0.2em] text-[#a3aba4]">System Alert</p>
                 <DialogTitle className="font-lore mt-1 text-2xl tracking-[0.05em] text-[#f3f3f3]">You Won!</DialogTitle>
               </div>
-              <p className="animate-pulse font-mono text-xl leading-none text-[#f3f3f3]">!!</p>
+              <p className="animate-pulse font-machine text-xl leading-none text-[#f3f3f3]">!!</p>
             </div>
 
-            <DialogDescription className="font-mono text-xs uppercase tracking-[0.09em] text-[#c9ccca]">
+            <DialogDescription className="font-machine text-xs uppercase tracking-[0.09em] text-[#c9ccca]">
               A PRIZE HAS BEEN DETECTED ON YOUR SYSTEM.
             </DialogDescription>
             <p className="mt-3 font-machine leading-5 text-[#aeb4af]">
@@ -1571,7 +1571,7 @@ export default function ChamberTextQuestPage() {
                 <Button
                   type="button"
                   onClick={claimPrize}
-                  className="min-h-11 justify-center border border-[#b9beb9] bg-[#d7dcd7] font-mono text-xs uppercase tracking-[0.08em] text-[#0a0c0a] hover:bg-white"
+                  className="min-h-11 justify-center border border-[#b9beb9] bg-[#d7dcd7] font-machine text-xs uppercase tracking-[0.08em] text-[#0a0c0a] hover:bg-white"
                 >
                   CLAIM PRIZE
                 </Button>
@@ -1586,7 +1586,7 @@ export default function ChamberTextQuestPage() {
               </div>
             ) : (
               <div className="mt-4 space-y-3">
-                <p className="font-mono text-xs uppercase tracking-[0.08em] text-[#f0f3f0]">
+                <p className="font-machine text-xs uppercase tracking-[0.08em] text-[#f0f3f0]">
                   DOWNLOAD INITIATED. YOU ARE FREE (CONDITIONAL).
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -1604,14 +1604,14 @@ export default function ChamberTextQuestPage() {
                       variant="ghost"
                       className="min-h-10 border border-[#505652] bg-[#161a17] font-machine uppercase tracking-[0.08em] text-[#c8cdc8] hover:bg-[#202420]"
                     >
-                      <Link href="/">RETURN TO DESKTOP</Link>
+                      <Link href="/desktop">RETURN TO DESKTOP</Link>
                     </Button>
                   ) : null}
                 </div>
               </div>
             )}
 
-            <label className="mt-4 flex items-start gap-2 font-mono text-[10px] leading-4 text-[#8f9590]">
+            <label className="mt-4 flex items-start gap-2 font-machine text-[10px] leading-4 text-[#8f9590]">
               <input
                 type="checkbox"
                 checked={prizeCheckbox}
@@ -1622,7 +1622,7 @@ export default function ChamberTextQuestPage() {
             </label>
 
             {noThanksClicks > 0 ? (
-              <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.07em] text-[#9ea49f]">
+              <p className="mt-2 font-machine text-[10px] uppercase tracking-[0.07em] text-[#9ea49f]">
                 Exit request denied. Prize remains attached.
               </p>
             ) : null}

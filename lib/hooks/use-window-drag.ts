@@ -8,33 +8,38 @@ const limit = (n: number, low: number, high: number) => Math.max(low, Math.min(h
 
 // Keep the normal layout slot. CSS translate composes with the window's
 // existing minimize transform, and pointer movement never re-renders the app.
-export function useWindowDrag(ref: RefObject<HTMLElement>, disabled = false, clearance = 44) {
+export function useWindowDrag(ref: RefObject<HTMLElement>, disabled = false, clearance = 44, suspended = false, translateProperty = 'translate') {
   const offset = useRef<Point>(origin());
   const held = useRef<{ id: number; start: Point; from: Point } | null>(null);
   const reset = useCallback(() => {
     held.current = null;
     offset.current = origin();
     if (ref.current) {
-      ref.current.style.removeProperty('translate');
+      ref.current.style.removeProperty(translateProperty);
       delete ref.current.dataset.dragging;
     }
-  }, [ref]);
+  }, [ref, translateProperty]);
 
   const move = useCallback((x: number, y: number) => {
     const node = ref.current;
-    if (!node) return;
+    if (!node || suspended || !node.getClientRects().length) return;
     const rect = node.getBoundingClientRect();
     const baseX = rect.left - offset.current.x, baseY = rect.top - offset.current.y;
-    const top = clearance + 4;
-    const left = limit(baseX + x, 4, window.innerWidth - rect.width - 4);
-    const upper = Math.max(top, window.innerHeight - rect.height - 4);
-    const positionY = rect.height > window.innerHeight - top - 4 ? baseY : limit(baseY + y, top, upper);
+    const area = node.closest('[data-window-area]')?.getBoundingClientRect();
+    const top = area?.top ?? clearance + 4;
+    const bottom = area?.bottom ?? window.innerHeight - 4;
+    const left = limit(baseX + x, area?.left ?? 4, (area?.right ?? window.innerWidth - 4) - rect.width);
+    const positionY = rect.height > bottom - top ? baseY : limit(baseY + y, top, bottom - rect.height);
     offset.current = { x: Math.round(left - baseX), y: Math.round(positionY - baseY) };
-    node.style.translate = `${offset.current.x}px ${offset.current.y}px`;
-  }, [clearance, ref]);
+    node.style.setProperty(translateProperty, `${offset.current.x}px ${offset.current.y}px`);
+  }, [clearance, ref, suspended, translateProperty]);
 
   useEffect(() => {
     reset();
+  }, [disabled, reset]);
+
+  useEffect(() => {
+    if (suspended || disabled) return;
     const observer = new ResizeObserver(() => {
       const { x, y } = offset.current;
       if (x || y) move(x, y);
@@ -45,7 +50,7 @@ export function useWindowDrag(ref: RefObject<HTMLElement>, disabled = false, cle
       observer.disconnect();
       window.removeEventListener('resize', reset);
     };
-  }, [disabled, move, ref, reset]);
+  }, [disabled, move, ref, reset, suspended]);
 
   function start(event: PointerEvent<HTMLElement>) {
     if (disabled || !event.isPrimary || event.button !== 0 ||

@@ -1,0 +1,30 @@
+/* The olive, square-tabbed folder from the welcome desktop, scaled to its context. */
+.folder {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 1em;
+  height: .75em;
+  font-size: var(--folder-size, 16px);
+  vertical-align: middle;
+  --rim: clamp(1px, .032em, 2px);
+}
+.folder::before, .folder::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  border: var(--rim) solid #abbc91;
+}
+.folder::before {
+  top: 0;
+  width: 38%;
+  height: 32%;
+  background: #83946d;
+}
+.folder::after {
+  inset: 14% 0 0;
+  background: #778764;
+  box-shadow: inset 0 .047em #bac6a3, inset -.047em -.047em #505c43, .031em .031em #0c1109;
+}
+.folder > * { position: absolute; z-index: 1; }
+.stamp { left: 33%; top: 30%; width: 40%; height: 53%; color: #34452c; }

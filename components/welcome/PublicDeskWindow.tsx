@@ -1,33 +1,42 @@
 'use client';
 
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, type RefObject } from 'react';
 import { TILL_SLIP, tillSlip } from '@/lib/grocer-quest';
+import type { MenuWindow } from './WelcomeBar';
 import { SystemSettings } from '@/components/welcome/SystemSettings';
 import { useWindowDrag } from '@/lib/hooks/use-window-drag';
-import type { DesktopGame } from '@/lib/desktop-games';
+import { deskAppTitle, type DeskApp } from '@/lib/desk-apps';
+import { AboutChamberOS } from '../windows/apps/AboutChamberOS';
 import { Firefly } from '../games/Firefly';
 import { Till, type TillProgress } from '../games/Till';
 import { ReceiptPaper } from '../games/ReceiptPaper';
 import styles from '../games/games.module.css';
 
-export type DeskApp = DesktopGame | 'settings' | typeof TILL_SLIP;
+type Props = {
+  app: DeskApp;
+  till: TillProgress;
+  state: MenuWindow['state'];
+  refNode: RefObject<HTMLDialogElement>;
+  onSelect: () => void;
+  onClose: () => void;
+};
 
-export function PublicDeskWindow({ app, till, onClose }: { app: DeskApp; till: TillProgress; onClose: () => void }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  const drag = useWindowDrag(dialog, false, 0);
+export function PublicDeskWindow({ app, till, state, refNode, onSelect, onClose }: Props) {
+  const drag = useWindowDrag(refNode, false, 44, state === 'minimised');
   const isSlip = app === TILL_SLIP;
-  const title = isSlip ? tillSlip.name : app === 'settings' ? 'system settings' : `${app}.exe`;
+  const title = deskAppTitle(app);
   useLayoutEffect(() => {
-    const element = dialog.current;
-    element?.showModal();
-    return () => element?.close();
-  }, []);
-  return <dialog ref={dialog} data-print-slip={isSlip || undefined} className={styles.gameWindow} aria-labelledby="utility-title"
-    onCancel={event => { event.preventDefault(); onClose(); }}>
+    refNode.current?.focus({ preventScroll: true });
+  }, [app, refNode]);
+  return <dialog ref={refNode} open={state !== 'minimised'} tabIndex={-1} data-public-utility="" data-active={state === 'active'}
+    data-print-slip={isSlip || undefined} className={styles.gameWindow} aria-labelledby="utility-title"
+    onFocusCapture={onSelect} onPointerDownCapture={onSelect}
+    onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); onClose(); } }}>
     <header className={styles.gameBar} {...drag.handle} aria-label={`Move ${title}`}>
       <button type="button" aria-label={`Close ${title}`} title="Close window" onClick={onClose}><i aria-hidden="true">×</i></button>
       <span id="utility-title">{title}</span>
     </header>
+    {app === 'about' && <AboutChamberOS />}
     {app === 'settings' && <SystemSettings />}
     {app === 'firefly' && <Firefly />}
     {app === 'till' && <Till {...till}>

@@ -1,0 +1,38 @@
+content:
+  - name: releases
+    label: Release calendar
+    type: collection
+    path: content/releases
+    format: json
+    filename: "{fields.date}-{primary}.json"
+    view:
+      fields: [title, date, published]
+      primary: title
+      sort: [date, title]
+      default:
+        sort: date
+        order: desc
+    fields:
+      - name: title
+        label: Release title
+        type: string
+        required: true
+      - name: date
+        label: Release date
+        type: date
+        required: true
+        options:
+          time: false
+          format: yyyy-MM-dd
+      - name: link
+        label: Listening link
+        type: string
+        description: Optional. Paste a public Bandcamp release, YouTube, Apple Music or Mixcloud link. Other HTTPS links open as a release page.
+        pattern:
+          regex: "^https://"
+          message: Use a full HTTPS link.
+      - name: published
+        label: Show on the calendar
+        type: boolean
+        default: false
+        description: Switch on to announce this date in the next site build.

@@ -1,0 +1,1 @@
+The 48px media-optical icon is from the [KDE Oxygen icon theme](https://github.com/KDE/oxygen-icons/blob/master/48x48/devices/media-optical.png). It is distributed unmodified with the authors’ [licence](COPYING).

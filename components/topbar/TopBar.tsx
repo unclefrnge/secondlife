@@ -1,6 +1,11 @@
 'use client';
 
 import Image from 'next/image';
+import { CalendarClock } from '@/components/calendar/CalendarClock';
+import type { Recording } from '@/app/work/Recordings';
+import { PixelMoon } from './PixelMoon';
+import { chamberBuild } from '@/lib/config';
+import { useChamberClock } from '@/lib/hooks/use-chamber-clock';
 import { useMemo, useState } from 'react';
 
 import {
@@ -8,20 +13,19 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import {
   editMenuItems,
   fileMenuItems,
   goMenuItems,
   helpMenuItems,
   systemMenuItems,
-  viewMenuItems,
   windowMenuItems,
   type MenuEntry,
   type TopBarAction
@@ -34,6 +38,7 @@ interface TopBarProps {
   focusedWindowId: string | null;
   onAction: (action: TopBarAction) => void;
   onLogout: () => void;
+  onRecording: (recording: Recording) => void;
 }
 
 function MenuList({ entries, onAction }: { entries: MenuEntry[]; onAction: (action: TopBarAction) => void }) {
@@ -55,18 +60,18 @@ function MenuList({ entries, onAction }: { entries: MenuEntry[]; onAction: (acti
   );
 }
 
-export function TopBar({ windows, focusedWindowId, onAction, onLogout }: TopBarProps) {
+export function TopBar({ windows, focusedWindowId, onAction, onLogout, onRecording }: TopBarProps) {
   const [patchNotesOpen, setPatchNotesOpen] = useState(false);
   const [quitOpen, setQuitOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
-
+  const clock = useChamberClock();
+  const { chamberCycle } = clock;
   const orderedWindows = useMemo(() => [...windows].sort((a, b) => b.zIndex - a.zIndex), [windows]);
   const topMenus: Array<{ name: string; entries: MenuEntry[] }> = [
     { name: 'File', entries: fileMenuItems },
     { name: 'Edit', entries: editMenuItems },
-    { name: 'View', entries: viewMenuItems },
     { name: 'Go', entries: goMenuItems },
     { name: 'Window', entries: windowMenuItems },
     { name: 'Help', entries: helpMenuItems }
@@ -104,7 +109,7 @@ export function TopBar({ windows, focusedWindowId, onAction, onLogout }: TopBarP
   return (
     <>
       <header className="chamber-topbar fixed inset-x-0 top-0 z-50 h-10 border-b border-border bg-[#0a0a0b] text-text">
-        <div className="mx-auto flex h-full w-full items-center gap-2 px-2 sm:px-3">
+        <div className="mx-auto flex h-full w-full items-center gap-1 px-2 sm:gap-2 sm:px-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -125,15 +130,32 @@ export function TopBar({ windows, focusedWindowId, onAction, onLogout }: TopBarP
             <DropdownMenuContent>
               <MenuList entries={systemMenuItems} onAction={handleAction} />
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={onLogout}>Log Out Knight</DropdownMenuItem>
+              <DropdownMenuItem asChild><a href="/" target="_blank" rel="noreferrer">home links ↗</a></DropdownMenuItem>
+              <DropdownMenuItem onSelect={onLogout}>log out Knight</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <span className="text-sm font-identity text-text">ChamberOS</span>
-
-          <Separator orientation="vertical" className="mx-1 h-4" />
-
-          <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto" aria-label="Top bar menus">
+          <div className="sm:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="min-h-9 rounded-md px-2 text-sm hover:bg-surface focus-visible:ring-2 focus-visible:ring-accent">menu</button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="max-h-[70dvh] overflow-y-auto">
+                {topMenus.map((menu) => (
+                  <div key={menu.name}>
+                    <DropdownMenuLabel>{menu.name.toLowerCase()}</DropdownMenuLabel>
+                    <MenuList entries={menu.entries} onAction={handleAction} />
+                    {menu.name === 'Window' ? orderedWindows.map((window) => (
+                      <DropdownMenuItem key={window.id} onSelect={() => handleAction({ type: 'focus-window', windowId: window.id })}>
+                        {window.isMinimised ? 'Restore ' : ''}{window.title}
+                      </DropdownMenuItem>
+                    )) : null}
+                  </div>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <nav className="hidden min-w-0 flex-1 items-center gap-0.5 sm:flex" aria-label="Top bar menus">
             {topMenus.map((menu) => (
               <DropdownMenu key={menu.name}>
                 <DropdownMenuTrigger asChild>
@@ -141,7 +163,7 @@ export function TopBar({ windows, focusedWindowId, onAction, onLogout }: TopBarP
                     type="button"
                     className="inline-flex min-h-9 items-center rounded-md px-2 text-sm text-muted transition-colors duration-ui ease-calm hover:bg-surface hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                   >
-                    {menu.name}
+                    {menu.name.toLowerCase()}
                   </button>
                 </DropdownMenuTrigger>
 
@@ -170,6 +192,21 @@ export function TopBar({ windows, focusedWindowId, onAction, onLogout }: TopBarP
               </DropdownMenu>
             ))}
           </nav>
+
+          <div className="chamber-status-cluster ml-auto flex h-full shrink-0 items-center text-muted" aria-label="Chamber status">
+            <div
+              className="chamber-cycle flex items-center gap-1.5 px-1.5 sm:px-2"
+              role="img"
+              aria-label={chamberCycle ? `Chamber cycle: ${chamberCycle.name}, ${chamberCycle.code}` : 'Chamber cycle'}
+              title={chamberCycle ? `${chamberCycle.name} · ${chamberCycle.code}` : 'Chamber cycle'}
+            >
+              <PixelMoon fraction={chamberCycle?.fraction} />
+              <span className="hidden whitespace-nowrap font-machine text-[13px] lg:inline">
+                {chamberCycle ? `${chamberCycle.name} · ${chamberCycle.code}` : 'cycle --'}
+              </span>
+            </div>
+            <CalendarClock clock={clock} onRecording={onRecording} />
+          </div>
         </div>
       </header>
 
@@ -177,7 +214,7 @@ export function TopBar({ windows, focusedWindowId, onAction, onLogout }: TopBarP
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Patch Notes</DialogTitle>
-            <DialogDescription>ChamberOS v0.2 DMZ Build</DialogDescription>
+            <DialogDescription>ChamberOS {chamberBuild}</DialogDescription>
           </DialogHeader>
           <ul className="space-y-2 text-sm text-text">
             <li>Added macOS-style top menu system.</li>
@@ -247,7 +284,7 @@ export function TopBar({ windows, focusedWindowId, onAction, onLogout }: TopBarP
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reset Desktop</DialogTitle>
-            <DialogDescription>Close all windows and reset focus?</DialogDescription>
+            <DialogDescription>Close all windows and restore the centered icon layout?</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setResetConfirmOpen(false)}>

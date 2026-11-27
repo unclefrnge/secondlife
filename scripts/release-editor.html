@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release calendar · ChamberOS</title>
+<style>
+  @font-face {font-family:Plex;src:url(../public/fonts/IBMPlexSans-Regular.woff2) format('woff2')}
+  :root {color-scheme:dark;font:16px/1.5 Plex,system-ui,sans-serif;color:#e4ebdc;background:#192018}
+  main {max-width:25rem;margin:clamp(1.3rem,7vh,5rem) auto;padding:0 1rem}
+  h1 {font-size:1.6rem;font-weight:500} p,small {color:#bec9b5} label {display:block;margin-top:1rem}
+  input:not([type=checkbox]) {box-sizing:border-box;width:100%;margin:4px 0 0;padding:.62rem;background:#222c20;border:1px solid #65745b;color:inherit;font:inherit}
+  small {display:block;margin-top:.25rem;font-size:.85rem} button {font:inherit;padding:.5rem 1rem;border:0;background:#c6d7b1;color:#20301d;cursor:pointer}
+  button:focus-visible,input:focus-visible {outline:2px solid #cfdeb9;outline-offset:2px}
+  .actions {margin-top:1.5rem} output {display:block;margin-top:.8rem}
+</style>
+<main>
+  <h1>Release calendar</h1>
+  <form>
+    <label>Release title<input name="title" required maxlength="180" autocomplete="off"></label>
+    <label>Release date<input name="date" type="date" required></label>
+    <label>Listening link <small>Optional. Bandcamp, YouTube, Apple Music or Mixcloud.</small><input name="link" type="url" pattern="https://.+" placeholder="https://"></label>
+    <label><input name="published" type="checkbox"> Show on the calendar</label>
+    <div class="actions"><button>Save release file…</button></div>
+    <p>Save the file in <code>content/releases</code> in the website project. Published entries appear in the next site build.</p>
+    <output aria-live="polite"></output>
+  </form>
+</main>
+<script>
+  const form = document.querySelector('form');
+  const status = document.querySelector('output');
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const fields = new FormData(form);
+    const title = fields.get('title').trim();
+    if (!title) { form.elements.title.focus(); return; }
+    const date = fields.get('date');
+    const link = fields.get('link').trim();
+    const entry = { title, date, published: fields.has('published'), ...(link && { link }) };
+    const slug = title.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const name = date + '-' + (slug || 'release') + '.json';
+    const file = new Blob([JSON.stringify(entry, null, 2) + '\n'], { type: 'application/json' });
+    try {
+      if (window.showSaveFilePicker) {
+        const handle = await window.showSaveFilePicker({ suggestedName: name, id: 'chamber-releases',
+          types: [{ description: 'Release entry', accept: { 'application/json': ['.json'] } }] });
+        const writer = await handle.createWritable();
+        await writer.write(file);
+        await writer.close();
+        status.textContent = 'Saved ' + handle.name;
+      } else {
+        const url = URL.createObjectURL(file);
+        const download = document.createElement('a');
+        download.href = url;
+        download.download = name;
+        download.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        status.textContent = 'Move ' + name + ' from Downloads to content/releases.';
+      }
+    } catch (error) {
+      status.textContent = error.name === 'AbortError' ? 'Save cancelled.' : 'Couldn’t save the file. Try again.';
+    }
+  });
+</script>
+</html>

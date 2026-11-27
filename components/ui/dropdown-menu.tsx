@@ -40,7 +40,7 @@ const DropdownMenuSubContent = React.forwardRef<
     ref={ref}
     className={cn(
       'z-50 min-w-[11rem] overflow-hidden rounded-md border border-border bg-bg p-1 text-text shadow-none',
-      'data-[state=open]:animate-window-pop data-[state=closed]:opacity-0',
+      'chamber-menu-motion data-[state=closed]:opacity-0',
       className
     )}
     {...props}
@@ -59,7 +59,7 @@ const DropdownMenuContent = React.forwardRef<
       sideOffset={sideOffset}
       className={cn(
         'z-50 min-w-[12rem] overflow-hidden rounded-md border border-border bg-bg p-1 text-text shadow-none',
-        'data-[state=open]:animate-window-pop data-[state=closed]:opacity-0',
+        'chamber-menu-motion data-[state=closed]:opacity-0',
         className
       )}
       {...props}
@@ -113,7 +113,7 @@ const DropdownMenuLabel = React.forwardRef<
 >(({ className, inset, ...props }, ref) => (
   <DropdownMenuPrimitive.Label
     ref={ref}
-    className={cn('px-2 py-1.5 text-xs font-medium uppercase tracking-[0.08em] text-muted', inset && 'pl-8', className)}
+    className={cn('px-2 py-1.5 text-xs font-medium text-muted', inset && 'pl-8', className)}
     {...props}
   />
 ));

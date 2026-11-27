@@ -1,10 +1,9 @@
 import { featuredLinks, footerLinks, musicLinks } from '@/lib/home-links';
-import { WelcomeWindow } from '@/components/welcome/WelcomeWindow';
-import styles from './home.module.css';
+import styles from '@/app/home.module.css';
 
-export default function HomePage() {
+export function WelcomeContent() {
   return (
-    <WelcomeWindow>
+    <>
       <div className={styles.content}>
         {featuredLinks.length > 0 && (
           <nav className={styles.featured} aria-label="Featured projects">
@@ -42,6 +41,6 @@ export default function HomePage() {
       <footer className={styles.footer}>
         {footerLinks.map(link => <a key={link.href} href={link.href}>{link.label}</a>)}
       </footer>
-    </WelcomeWindow>
+    </>
   );
 }
